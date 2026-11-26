@@ -121,7 +121,7 @@ const MY_SCHEMA: ShieldSchema = {
   propertyName: (routeIndex, attribute) => `${attribute}_${routeIndex}`,
   roadClassProperty: "kind",
   roadClassOrder: ["highway", "street"],
-  opacityZooms: [10, 14],
+  revealZooms: [10, 14],
 };
 
 addShieldLayer(map, {
@@ -131,7 +131,7 @@ addShieldLayer(map, {
 });
 ```
 
-That schema reads `network_1`, `ref_1`, and `name_1`. `opacityZooms` must be the same length as `roadClassOrder` and strictly increasing. If you need a custom missing-image id spelling, set `getImageName`, `parseImageName`, and `formatImageName` together (and `acceptsImageId` when the prefix differs).
+That schema reads `network_1`, `ref_1`, and `name_1`. `revealZooms` must be the same length as `roadClassOrder` and strictly increasing. If you need a custom missing-image id spelling, set `getImageName`, `parseImageName`, and `formatImageName` together (and `acceptsImageId` when the prefix differs).
 
 ## Schema
 
@@ -142,7 +142,7 @@ Trailblazer does not require a particular tileset. Its default schema (`"openmap
 - **`route_#_name`** (`string`): A route name used when the artwork depends on the name rather than the ref.
 - **`route_#_color`** (`string`): An optional route color. When present, it distinguishes otherwise identical routes.
 
-Features may also carry a **`class`** property (for example `motorway`, `trunk`, `primary`) used for sorting and fade-in by road importance.
+Features may also carry a **`class`** property (for example `motorway`, `trunk`, `primary`) used for sorting and reveal-by-zoom by road importance.
 
 If your tileset uses different property names or layers, pass a custom schema object instead of `"openmaptiles"`.
 

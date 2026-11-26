@@ -57,7 +57,7 @@ function simpleSchema(overrides: Partial<ShieldSchema> = {}): ShieldSchema {
     propertyName: (routeIndex, attribute) => `${attribute}_${routeIndex}`,
     roadClassProperty: "kind",
     roadClassOrder: ["highway", "street"],
-    opacityZooms: [10, 14],
+    revealZooms: [10, 14],
     ...overrides,
   };
 }
@@ -90,14 +90,14 @@ describe("shield schema", function () {
         "secondary",
         "tertiary",
       ]);
-      expect(OPENMAPTILES.opacityZooms).to.eql([8, 10, 11, 12, 14]);
+      expect(OPENMAPTILES.revealZooms).to.eql([8, 10, 11, 12, 14]);
     });
 
     it("is frozen so callers cannot change the shared defaults", function () {
       expect(Object.isFrozen(OPENMAPTILES)).to.equal(true);
       expect(Object.isFrozen(OPENMAPTILES.routeAttributes)).to.equal(true);
       expect(Object.isFrozen(OPENMAPTILES.roadClassOrder)).to.equal(true);
-      expect(Object.isFrozen(OPENMAPTILES.opacityZooms)).to.equal(true);
+      expect(Object.isFrozen(OPENMAPTILES.revealZooms)).to.equal(true);
       expect(() => {
         (OPENMAPTILES as { source: string }).source = "elsewhere";
       }).to.throw(TypeError);
@@ -282,7 +282,7 @@ describe("shield schema", function () {
       ]);
     });
 
-    it("derives the opacity ramp from the schema's classes", function () {
+    it("derives the reveal ramp from the schema's classes", function () {
       const layer = getShieldLayer(simpleSchema());
       expect(layer.layout["symbol-sort-key"]).to.eql([
         "match",
@@ -308,7 +308,7 @@ describe("shield schema", function () {
       const layer = getShieldLayer(
         simpleSchema({
           roadClassOrder: ["highway"],
-          opacityZooms: [12],
+          revealZooms: [12],
         })
       );
       expect(layer.paint["text-opacity"]).to.eql([
@@ -324,7 +324,7 @@ describe("shield schema", function () {
       const layer = getShieldLayer(
         simpleSchema({
           roadClassOrder: [],
-          opacityZooms: [],
+          revealZooms: [],
         })
       );
       expect(layer.layout["symbol-sort-key"]).to.eql(["literal", 0]);
@@ -461,21 +461,21 @@ describe("shield schema", function () {
       ).to.throw(/must be set together/);
     });
 
-    it("rejects opacity zooms that do not match the class list", function () {
+    it("rejects reveal zooms that do not match the class list", function () {
       expect(() =>
         getShieldExpression(
           simpleSchema({
-            opacityZooms: [8],
+            revealZooms: [8],
           })
         )
-      ).to.throw(/opacityZooms length/);
+      ).to.throw(/revealZooms length/);
     });
 
-    it("rejects opacity zooms that go backwards", function () {
+    it("rejects reveal zooms that go backwards", function () {
       expect(() =>
         getShieldExpression(
           simpleSchema({
-            opacityZooms: [12, 10],
+            revealZooms: [12, 10],
           })
         )
       ).to.throw(/strictly increasing/);

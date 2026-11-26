@@ -140,7 +140,7 @@ export interface ShieldSchema {
   propertyName: (routeIndex: number, attribute: string) => string;
 
   /**
-   * Feature property holding the road class used for sort order and opacity.
+   * Feature property holding the road class used for sort order and reveal.
    * OpenMapTiles uses `"class"`.
    */
   roadClassProperty: string;
@@ -154,7 +154,8 @@ export interface ShieldSchema {
   roadClassOrder: readonly string[];
 
   /**
-   * Zoom levels that control {@link ShieldSchema.roadClassOrder}.
+   * Zoom levels at which each {@link ShieldSchema.roadClassOrder} class is
+   * revealed (via binary `text-opacity`, not a fade).
    *
    * This array must be the same length as `roadClassOrder` and strictly
    * increasing. Below the first zoom, only the first class is drawn. Each
@@ -165,7 +166,7 @@ export interface ShieldSchema {
    * The OpenMapTiles schema uses `[8, 10, 11, 12, 14]` for motorway, trunk,
    * primary, secondary, and tertiary.
    */
-  opacityZooms: readonly number[];
+  revealZooms: readonly number[];
 
   /**
    * Replace the generated image-id expression for one route slot.
@@ -292,7 +293,7 @@ export function getShieldExpression(
 
 /**
  * Symbol layer for `schema`, including the image expression, the road-class
- * sort key, and the zoom opacity ramp.
+ * sort key, and the zoom reveal ramp.
  *
  * For `"openmaptiles"`, this is the standard OpenMapTiles highway-shield
  * layer, aside from `text-font`. Pass `textFont` to match your style's glyph
@@ -488,18 +489,19 @@ function symbolSortKey(schema: ShieldSchema): ExpressionSpecification {
 }
 
 /**
- * Zoom opacity ramp for {@link ShieldSchema.roadClassOrder}.
- * The first class is visible immediately. Each zoom except the last adds the
- * next class. The last zoom shows every remaining feature.
+ * Zoom reveal ramp for {@link ShieldSchema.roadClassOrder}, implemented as
+ * binary `text-opacity` (0 or 1). The first class is visible immediately.
+ * Each zoom except the last adds the next class. The last zoom shows every
+ * remaining feature.
  */
 function textOpacity(schema: ShieldSchema): ExpressionSpecification {
   if (schema.roadClassOrder.length === 0) {
     return ["literal", 1];
   }
   const expression: unknown[] = ["step", ["zoom"], classesVisible(schema, 1)];
-  schema.opacityZooms.forEach((zoom, index) => {
+  schema.revealZooms.forEach((zoom, index) => {
     expression.push(zoom);
-    const revealsEveryClass = index === schema.opacityZooms.length - 1;
+    const revealsEveryClass = index === schema.revealZooms.length - 1;
     expression.push(revealsEveryClass ? 1 : classesVisible(schema, index + 2));
   });
   return expression as ExpressionSpecification;
@@ -609,15 +611,15 @@ export function assertShieldSchema(schema: ShieldSchema): void {
       "attributeSeparator must be non-empty, or set a custom image codec"
     );
   }
-  if (schema.roadClassOrder.length !== schema.opacityZooms.length) {
+  if (schema.roadClassOrder.length !== schema.revealZooms.length) {
     throw schemaError(
       schema,
-      `opacityZooms length (${schema.opacityZooms.length}) must equal roadClassOrder length (${schema.roadClassOrder.length})`
+      `revealZooms length (${schema.revealZooms.length}) must equal roadClassOrder length (${schema.roadClassOrder.length})`
     );
   }
-  for (let i = 1; i < schema.opacityZooms.length; i++) {
-    if (schema.opacityZooms[i] <= schema.opacityZooms[i - 1]) {
-      throw schemaError(schema, "opacityZooms must be strictly increasing");
+  for (let i = 1; i < schema.revealZooms.length; i++) {
+    if (schema.revealZooms[i] <= schema.revealZooms[i - 1]) {
+      throw schemaError(schema, "revealZooms must be strictly increasing");
     }
   }
 }

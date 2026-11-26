@@ -37,7 +37,7 @@ export const OPENMAPTILES: ShieldSchema = Object.freeze({
     "secondary",
     "tertiary",
   ]),
-  opacityZooms: Object.freeze([8, 10, 11, 12, 14]),
+  revealZooms: Object.freeze([8, 10, 11, 12, 14]),
 });
 
 registerBuiltinSchema(OPENMAPTILES);
