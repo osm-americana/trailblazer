@@ -264,8 +264,20 @@ export class AbstractShieldRenderer {
     };
   }
 
-  /** Get the graphic for a specified route */
-  public getGraphicForRoute(network: string, ref: string, name: string) {
+  /**
+   * Draw the graphic for a specified route.
+   *
+   * Returns `null` when no drawable shield exists for the route (for example
+   * an empty `ref` with no `noref` definition, or an invalid `ref` on an
+   * unknown network). MapLibre's missing-image path already substitutes an
+   * empty sprite in that case. Headless and test callers should check for
+   * `null` and call {@link emptySprite} themselves.
+   */
+  public getGraphicForRoute(
+    network: string,
+    ref: string,
+    name: string
+  ): CanvasRenderingContext2D | null {
     return generateShieldCtx(this._renderContext, {
       network,
       ref,
@@ -273,7 +285,11 @@ export class AbstractShieldRenderer {
     });
   }
 
-  /** Get a blank route shield sprite in the default size */
+  /**
+   * A blank 1×1 sprite in the default size.
+   * Use this when {@link getGraphicForRoute} returns `null` and you still need
+   * a canvas (for example in headless tests).
+   */
   public emptySprite(): CanvasRenderingContext2D {
     return this._renderContext.emptySprite();
   }
