@@ -27,6 +27,7 @@ export type {
   ShieldSchema,
   ShieldSchemaRef,
   ShieldLayerOverrides,
+  CreateShieldRendererOptions,
   AddShieldLayerOptions,
 } from "./shield_schema";
 // Side-effect: registers built-in schemas (e.g. "openmaptiles").

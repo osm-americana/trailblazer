@@ -61,14 +61,14 @@ addShieldLayer(map, {
 });
 ```
 
-`sprites` may be a URL or a shield specification object built in code. Pass `filterNetwork` in the options so it is installed before the first render. The function returns the renderer, already attached to the map. Call `onShieldDefLoad` on that return value to observe the loaded network definitions:
+`sprites` may be a URL or a shield specification object built in code. Pass `filterNetworks` to decline route networks by pattern before the first render. The function returns the renderer, already attached to the map. Call `onShieldDefLoad` on that return value to observe the loaded network definitions:
 
 ```typescript
 const renderer = addShieldLayer(map, {
   schema: "openmaptiles",
   sprites: shields,
   // Skip recreational route networks (nwn, lwn, rcn, and so on).
-  filterNetwork: (network) => !/^[lrni][chimpw]n$/.test(network),
+  filterNetworks: /^[lrni][chimpw]n$/,
 });
 
 renderer.onShieldDefLoad((networks) => {
@@ -96,10 +96,10 @@ style.layers.push(getShieldLayer("openmaptiles"));
 layout["text-field"] = getShieldExpression("openmaptiles");
 
 // Once the map exists:
-createShieldRenderer(
-  "https://americanamap.org/shields.json",
-  "openmaptiles"
-).renderOnMaplibreGL(map);
+createShieldRenderer("https://americanamap.org/shields.json", "openmaptiles", {
+  // Skip recreational route networks (nwn, lwn, rcn, and so on).
+  filterNetworks: /^[lrni][chimpw]n$/,
+}).renderOnMaplibreGL(map);
 ```
 
 ### Another tile schema

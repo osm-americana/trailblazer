@@ -5,6 +5,7 @@ import type {
   SymbolLayerSpecification,
 } from "maplibre-gl";
 import type {
+  DebugOptions,
   RouteDefinition,
   RouteParser,
   ShieldSpecification,
@@ -223,10 +224,31 @@ export interface ShieldLayerOverrides {
 }
 
 /**
+ * Options for {@link createShieldRenderer} beyond sprites and schema.
+ */
+export interface CreateShieldRendererOptions {
+  /**
+   * Additional image-id test. The schema's own id test still applies, so this
+   * can only narrow the set of ids the renderer claims.
+   */
+  filterImageID?: StringPredicate;
+  /**
+   * Decline route networks whose id matches this pattern.
+   * Typical OpenMapTiles use: `/^[lrni][chimpw]n$/` for recreational scope
+   * tags (`nwn`, `lcn`, …) that are not highway networks.
+   */
+  filterNetworks?: RegExp;
+  /** Debugging options applied before the first render. */
+  debugOptions?: DebugOptions;
+}
+
+/**
  * Options for {@link addShieldLayer}.
  * `schema` selects the tile encoding. `sprites` selects the artwork.
  */
-export interface AddShieldLayerOptions extends ShieldLayerOverrides {
+export interface AddShieldLayerOptions
+  extends ShieldLayerOverrides,
+    CreateShieldRendererOptions {
   /**
    * Tile schema id or object. Pass `"openmaptiles"` for OpenMapTiles, or a
    * custom {@link ShieldSchema} when the tileset differs.
@@ -241,13 +263,6 @@ export interface AddShieldLayerOptions extends ShieldLayerOverrides {
   sprites: string | URL | ShieldSpecification;
   /** Insert the new layer immediately before this layer id. */
   beforeId?: string;
-  /**
-   * Additional image-id test. The schema's own id test still applies, so this
-   * can only narrow the set of ids the renderer claims.
-   */
-  filterImageID?: StringPredicate;
-  /** Which route networks this renderer should draw. */
-  filterNetwork?: StringPredicate;
 }
 
 /**
@@ -320,8 +335,9 @@ export function getShieldLayer(
  * Use this with {@link ShieldRenderer} or {@link URLShieldRenderer} when
  * installing the handler yourself. Pair it with {@link isSchemaShieldId} so
  * unrelated missing images remain available to other resolvers.
- * For legend UI and other callers that need empty-string fields plus `color`
- * and the raw id, use {@link parseShieldImageId}.
+ * Empty `ref`/`name` are returned as `""` so shield defs can treat blank the
+ * same way as a missing attribute. For legend UI that also needs `color` and
+ * the raw id, use {@link parseShieldImageId}.
  */
 export function routeParserFromSchema(schema: ShieldSchemaRef): RouteParser {
   const resolved = resolveSchema(schema);
@@ -390,21 +406,35 @@ export function isSchemaShieldId(
  *
  * @example
  * ```ts
- * createShieldRenderer("shields.json", "openmaptiles").renderOnMaplibreGL(map);
+ * createShieldRenderer("shields.json", "openmaptiles", {
+ *   filterNetworks: /^[lrni][chimpw]n$/,
+ * }).renderOnMaplibreGL(map);
  * ```
  */
 export function createShieldRenderer(
   sprites: string | URL | ShieldSpecification,
-  schema: ShieldSchemaRef
+  schema: ShieldSchemaRef,
+  options: CreateShieldRendererOptions = {}
 ): AbstractShieldRenderer {
   const resolved = resolveSchema(schema);
   const parser = routeParserFromSchema(resolved);
   const renderer = isShieldSpecification(sprites)
     ? new ShieldRenderer(sprites, parser)
     : new URLShieldRenderer(sprites, parser);
-  return renderer.filterImageID((imageId) =>
-    isSchemaShieldId(resolved, imageId)
+  const extraImageFilter = options.filterImageID;
+  renderer.filterImageID(
+    (imageId) =>
+      isSchemaShieldId(resolved, imageId) &&
+      (!extraImageFilter || extraImageFilter(imageId))
   );
+  if (options.filterNetworks) {
+    const filter = options.filterNetworks;
+    renderer.filterNetwork((network) => !filter.test(network));
+  }
+  if (options.debugOptions) {
+    renderer.debugOptions(options.debugOptions);
+  }
+  return renderer;
 }
 
 /**
@@ -432,16 +462,7 @@ export function addShieldLayer(
   options: AddShieldLayerOptions
 ): AbstractShieldRenderer {
   const schema = resolveSchema(options.schema);
-  const renderer = createShieldRenderer(options.sprites, schema);
-  if (options.filterImageID) {
-    const extra = options.filterImageID;
-    renderer.filterImageID(
-      (imageId) => isSchemaShieldId(schema, imageId) && extra(imageId)
-    );
-  }
-  if (options.filterNetwork) {
-    renderer.filterNetwork(options.filterNetwork);
-  }
+  const renderer = createShieldRenderer(options.sprites, schema, options);
   renderer.renderOnMaplibreGL(map);
   map.addLayer(getShieldLayer(schema, options), options.beforeId);
   return renderer;
@@ -556,21 +577,19 @@ function parseSchemaImageName(
   imageId: string
 ): RouteDefinition {
   if (schema.parseImageName) {
-    return schema.parseImageName(imageId);
+    const route = schema.parseImageName(imageId);
+    return {
+      network: route.network ?? "",
+      ref: route.ref ?? "",
+      name: route.name ?? "",
+    };
   }
   const values = splitInternalImageId(schema, imageId);
-  const route: RouteDefinition = {
+  return {
     network: values[schema.routeAttributes.indexOf("network")] ?? "",
+    ref: values[schema.routeAttributes.indexOf("ref")] ?? "",
+    name: values[schema.routeAttributes.indexOf("name")] ?? "",
   };
-  const ref = values[schema.routeAttributes.indexOf("ref")];
-  const name = values[schema.routeAttributes.indexOf("name")];
-  if (ref) {
-    route.ref = ref;
-  }
-  if (name) {
-    route.name = name;
-  }
-  return route;
 }
 
 function formatSchemaImageName(

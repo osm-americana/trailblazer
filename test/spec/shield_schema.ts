@@ -326,6 +326,7 @@ describe("shield schema", function () {
       expect(parser.parse("shield\nUS:I\n95\n\n")).to.eql({
         network: "US:I",
         ref: "95",
+        name: "",
       });
       expect(parser.parse("shield\nUS:I\n95\nLincoln Highway\nred")).to.eql({
         network: "US:I",
@@ -352,6 +353,8 @@ describe("shield schema", function () {
       expect(parser.format("US:I", "95", "")).to.equal("shield\nUS:I\n95\n\n");
       expect(parser.parse(parser.format("US:I", "", ""))).to.eql({
         network: "US:I",
+        ref: "",
+        name: "",
       });
     });
 
@@ -385,6 +388,7 @@ describe("shield schema", function () {
       expect(parser.parse("shield\nCA:ON:primary\n401\n")).to.eql({
         network: "CA:ON:primary",
         ref: "401",
+        name: "",
       });
     });
   });
@@ -464,6 +468,7 @@ describe("shield schema", function () {
       expect(parser.parse("rte:US:I=95")).to.eql({
         network: "US:I",
         ref: "95",
+        name: "",
       });
       expect(isSchemaShieldId(custom, "rte:US:I=95")).to.equal(true);
       expect(isSchemaShieldId(custom, "shield\nUS:I\n95\n")).to.equal(false);
@@ -542,8 +547,9 @@ describe("shield schema", function () {
     it("stores an empty sprite when the network filter declines the route", function () {
       const repo = new InMemorySpriteRepository();
       const imageId = "shield\nUS:I\n95\n\n";
-      createShieldRenderer(interstateSpec, "openmaptiles")
-        .filterNetwork((network) => network !== "US:I")
+      createShieldRenderer(interstateSpec, "openmaptiles", {
+        filterNetworks: /^US:I$/,
+      })
         .graphicsFactory(new HeadlessGraphicsFactory())
         .renderOnRepository(repo)
         .getMissingStyleImageResolver()(imageId);
