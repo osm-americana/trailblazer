@@ -314,39 +314,190 @@ The supported text constraints are:
 
 ### Defining drawn shield shapes
 
-If `shapeBlank` is specified, the shield will be drawn as a shape. This needs to be specified with a drawing function, `drawFunc` and a `params` block the describes how the shape will be drawn. The draw functions are as follows:
+If `shapeBlank` is specified, the shield is drawn as a vector shape. Set `drawFunc` to one of the built-in names below and pass a `params` object. Prefer the typed helpers in `@americana/trailblazer` (`circleShield`, `pillShield`, and so on)—they fill in padding and text layout for each shape.
 
-|                                                                                                                                                                                                                                                    | `drawFunc`          |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| ![](https://upload.wikimedia.org/wikipedia/commons/c/cf/Diamond_highway_shield_shape.svg)                                                                                                                                                          | `diamond`           |
-| ![](https://upload.wikimedia.org/wikipedia/commons/3/30/Black_and_white_circle_shape_as_used_in_highway_shields.svg)                                                                                                                               | `ellipse`           |
-| ![](https://upload.wikimedia.org/wikipedia/commons/7/75/Escutcheon_highway_shield_shape.svg)                                                                                                                                                       | `escutcheon`        |
-| ![](https://upload.wikimedia.org/wikipedia/commons/f/f8/Fishhead_highway_shield_shape.svg)                                                                                                                                                         | `fishhead`          |
-| ![](https://upload.wikimedia.org/wikipedia/commons/6/61/Hexagon_highway_shield_shape.svg)                                                                                                                                                          | `hexagonVertical`   |
-| ![](https://upload.wikimedia.org/wikipedia/commons/2/25/Horizontal_hexagon_shape.svg)                                                                                                                                                              | `hexagonHorizontal` |
-| ![](https://upload.wikimedia.org/wikipedia/commons/f/f8/Octagon_shield_shape.svg)                                                                                                                                                                  | `octagonVertical`   |
-| ![](https://upload.wikimedia.org/wikipedia/commons/f/ff/Pentagon_shield_shape.svg)![](https://upload.wikimedia.org/wikipedia/commons/b/b0/Black_and_white_home_plate_shape_as_used_in_highway_shields.svg)                                         | `pentagon`          |
-| ![](https://upload.wikimedia.org/wikipedia/commons/archive/1/17/20230326013156%21Pill_shape.svg)                                                                                                                                                   | `pill`              |
-| ![](https://upload.wikimedia.org/wikipedia/commons/3/30/Black_and_white_circle_shape_as_used_in_highway_shields.svg)![](https://upload.wikimedia.org/wikipedia/commons/archive/a/a1/20230326013519%21Rounded_rectangle_shape.svg)                  | `roundedRectangle`  |
-| ![](https://upload.wikimedia.org/wikipedia/commons/a/ad/Black_and_white_downward_trapezoid_as_used_in_highway_shields.svg)![](https://upload.wikimedia.org/wikipedia/commons/5/56/Black_and_white_upward_trapezoid_as_used_in_highway_shields.svg) | `trapezoid`         |
-| ![](https://upload.wikimedia.org/wikipedia/commons/a/ad/Downward_triangle_highway_shield_shape.svg)                                                                                                                                                | `triangle`          |
+Samples below were rendered with those helpers (`npx tsx scripts/generate_shape_samples.ts`).
 
-The following `params` options can be specified:
+| Sample                                                                    | `drawFunc` / helper                                         | Notes                                                                       |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------- |
+| ![](media/shapes/circle.svg)                                              | `ellipse` via `circleShield`                                | Fixed square bounds (circle).                                               |
+| ![](media/shapes/oval.svg)                                                | `ellipse` via `ovalShield`                                  | Omit `rectWidth` for variable width.                                        |
+| ![](media/shapes/rounded-rectangle.svg)                                   | `roundedRectangle` via `roundedRectShield`                  | Corner `radius` (default 2).                                                |
+| ![](media/shapes/pill.svg)                                                | `pill` via `pillShield`                                     | Capsule ends.                                                               |
+| ![](media/shapes/diamond.svg)                                             | `diamond` via `diamondShield`                               |                                                                             |
+| ![](media/shapes/triangle-down.svg)                                       | `triangle` via `triangleDownShield`                         | `pointUp: false`.                                                           |
+| ![](media/shapes/trapezoid-down.svg) ![](media/shapes/trapezoid-up.svg)   | `trapezoid` via `trapezoidDownShield` / `trapezoidUpShield` | `shortSideUp` selects orientation; helpers take `sideAngle` in **degrees**. |
+| ![](media/shapes/escutcheon-down.svg)                                     | `escutcheon` via `escutcheonDownShield`                     | Curved bottom; `yOffset` sets how deep the point is.                        |
+| ![](media/shapes/fishhead-down.svg)                                       | `fishhead` via `fishheadDownShield`                         |                                                                             |
+| ![](media/shapes/pentagon-up.svg)                                         | `pentagon` via `pentagonUpShield`                           | Point up; `yOffset`, `sideAngle`, `radius1`, `radius2`.                     |
+| ![](media/shapes/home-plate-down.svg) ![](media/shapes/home-plate-up.svg) | `pentagon` via `homePlateDownShield` / `homePlateUpShield`  | Home-plate variant (`sideAngle: 0`, `pointUp` toggles).                     |
+| ![](media/shapes/hexagon-vertical.svg)                                    | `hexagonVertical` via `hexagonVerticalShield`               | Pointed top and bottom; `yOffset`.                                          |
+| ![](media/shapes/hexagon-horizontal.svg)                                  | `hexagonHorizontal` via `hexagonHorizontalShield`           | Pointed sides; `sideAngle` in degrees on the helper.                        |
+| ![](media/shapes/octagon-vertical.svg)                                    | `octagonVertical` via `octagonVerticalShield`               | `yOffset` and `sideAngle`.                                                  |
+| ![](media/shapes/bannered-pill.svg)                                       | any base + `banneredShield`                                 | Adds one or more banner strings above the shield.                           |
 
-- `sideAngle` - indicates angle (in degrees) at which side edges deviate from vertical. Applies to `trapezoid`, `pentagon`, `hexagonHorizontal`, `octagonVertical`.
-- `fill` - specifies the internal fill color.
-- `yOffset` - indicates height (in pixels) at which the bottom and/or top edges deviate from horizontal. Applies to `escutcheon`, `pentagon`, `hexagonVertical`, `octagonVertical`.
-- `outline` - specifies the outline color.
-- `outlineWidth` - specifies the width of the outline.
-- `pointUp` - applies to several shape types and specifies whether the pointy side is up.
-- `radius` - specifies the rounding radius, in pixels, to use for corners.
-- `radius1` - Corner radius of pointed side of pentagon (defaults to 2)
-- `radius2` - Corner radius of flat side of pentagon (defaults to 0)
-- `shortSideUp` - for `trapezoid` only, a boolean which specifies whether the short side is up or down.
+#### `shapeBlank.params` options
+
+Each option below is illustrated with samples from `npm run docs:shape-samples`. Names are the ones on `ShapeBlankParams` (not older wiki synonyms like `fill` / `outline`).
+
+##### `fillColor` / `strokeColor`
+
+Interior and outline colors. `textColor` on the shield definition is separate.
+
+| ![](media/shapes/param-colors-default.svg)       | ![](media/shapes/param-colors-filled.svg)        |
+| ------------------------------------------------ | ------------------------------------------------ |
+| `fillColor: "#ffffff"`, `strokeColor: "#000000"` | `fillColor: "#003f87"`, `strokeColor: "#ffd200"` |
+
+##### `outlineWidth`
+
+Outline thickness in CSS pixels (default `1`).
+
+| ![](media/shapes/param-outline-1.svg) | ![](media/shapes/param-outline-4.svg) |
+| ------------------------------------- | ------------------------------------- |
+| `outlineWidth: 1`                     | `outlineWidth: 4`                     |
+
+##### `rectWidth`
+
+Omit for variable width (grows with the ref, clamped between the library min/max). Set a number for a fixed blank width.
+
+| ![](media/shapes/param-rectwidth-var-short.svg) | ![](media/shapes/param-rectwidth-var-long.svg) |
+| ----------------------------------------------- | ---------------------------------------------- |
+| variable, ref `5`                               | variable, ref `1234`                           |
+
+| ![](media/shapes/param-rectwidth-fixed-narrow.svg) | ![](media/shapes/param-rectwidth-fixed-wide.svg) |
+| -------------------------------------------------- | ------------------------------------------------ |
+| `rectWidth: 16`                                    | `rectWidth: 34`                                  |
+
+##### `radius`
+
+Single corner radius for `roundedRectangle`, `diamond`, `triangle`, trapezoids, hex/octagon, and similar.
+
+| ![](media/shapes/param-radius-0.svg) | ![](media/shapes/param-radius-8.svg) |
+| ------------------------------------ | ------------------------------------ |
+| `radius: 0`                          | `radius: 8`                          |
+
+##### `radius1` / `radius2`
+
+On `pentagon` (including home-plate helpers): `radius1` is the pointed end, `radius2` is the flat end.
+
+| ![](media/shapes/param-radius1-sharp.svg) | ![](media/shapes/param-radius1-round.svg) |
+| ----------------------------------------- | ----------------------------------------- |
+| `radius1: 0` (sharp point)                | `radius1: 8`                              |
+
+| ![](media/shapes/param-radius2-sharp.svg) | ![](media/shapes/param-radius2-round.svg) |
+| ----------------------------------------- | ----------------------------------------- |
+| `radius2: 0` (sharp flat corners)         | `radius2: 8`                              |
+
+##### `yOffset`
+
+How far top and/or bottom edges cut in toward a point. Higher means a deeper tip. Used by `escutcheon`, `pentagon`, `hexagonVertical`, and `octagonVertical`.
+
+Escutcheon:
+
+| ![](media/shapes/param-yoffset-escutcheon-2.svg) | ![](media/shapes/param-yoffset-escutcheon-14.svg) |
+| ------------------------------------------------ | ------------------------------------------------- |
+| `yOffset: 2`                                     | `yOffset: 14`                                     |
+
+Vertical hexagon:
+
+| ![](media/shapes/param-yoffset-hexv-2.svg) | ![](media/shapes/param-yoffset-hexv-12.svg) |
+| ------------------------------------------ | ------------------------------------------- |
+| `yOffset: 2`                               | `yOffset: 12`                               |
+
+Pentagon tip:
+
+| ![](media/shapes/param-yoffset-pentagon-4.svg) | ![](media/shapes/param-yoffset-pentagon-14.svg) |
+| ---------------------------------------------- | ----------------------------------------------- |
+| `yOffset: 4`                                   | `yOffset: 14`                                   |
+
+##### `sideAngle`
+
+How far the sides lean from vertical. In raw `params` this is **radians**. The `*Shield` helpers take **degrees** and convert. Used by `trapezoid`, `pentagon`, `hexagonHorizontal`, and `octagonVertical`.
+
+Trapezoid:
+
+| ![](media/shapes/param-sideangle-trap-5.svg) | ![](media/shapes/param-sideangle-trap-28.svg) |
+| -------------------------------------------- | --------------------------------------------- |
+| 5°                                           | 28°                                           |
+
+Horizontal hexagon:
+
+| ![](media/shapes/param-sideangle-hexh-15.svg) | ![](media/shapes/param-sideangle-hexh-40.svg) |
+| --------------------------------------------- | --------------------------------------------- |
+| 15°                                           | 40°                                           |
+
+Pentagon with slanted sides:
+
+| ![](media/shapes/param-sideangle-pentagon-0.svg) | ![](media/shapes/param-sideangle-pentagon-20.svg) |
+| ------------------------------------------------ | ------------------------------------------------- |
+| 0°                                               | 20°                                               |
+
+##### `pointUp`
+
+Whether the pointed end is on top. Applies to `triangle`, `pentagon` / home-plate, and `fishhead`.
+
+Triangle:
+
+| ![](media/shapes/param-pointup-triangle-false.svg) | ![](media/shapes/param-pointup-triangle-true.svg) |
+| -------------------------------------------------- | ------------------------------------------------- |
+| `pointUp: false`                                   | `pointUp: true`                                   |
+
+Fishhead:
+
+| ![](media/shapes/param-pointup-fishhead-false.svg) | ![](media/shapes/param-pointup-fishhead-true.svg) |
+| -------------------------------------------------- | ------------------------------------------------- |
+| `pointUp: false`                                   | `pointUp: true`                                   |
+
+##### `shortSideUp`
+
+Trapezoid only: which base is shorter.
+
+| ![](media/shapes/param-shortsideup-false.svg) | ![](media/shapes/param-shortsideup-true.svg) |
+| --------------------------------------------- | -------------------------------------------- |
+| `shortSideUp: false` (short side down)        | `shortSideUp: true` (short side up)          |
+
+##### Banners (`banneredShield`)
+
+Not a `params` field—`banners` on the shield definition draws labels above the blank.
+
+| ![](media/shapes/param-banners-one.svg) | ![](media/shapes/param-banners-two.svg) |
+| --------------------------------------- | --------------------------------------- |
+| `["TO"]`                                | `["NORTH", "TO"]`                       |
+
+Example using a helper:
+
+```ts
+import { pillShield, banneredShield } from "@americana/trailblazer";
+
+const def = banneredShield(pillShield("#fff", "#000", "#000"), ["TO"]);
+```
+
+Equivalent raw `shapeBlank`:
+
+```json
+{
+  "shapeBlank": {
+    "drawFunc": "pill",
+    "params": {
+      "fillColor": "#ffffff",
+      "strokeColor": "#000000"
+    }
+  },
+  "textLayout": { "constraintFunc": "ellipse" },
+  "textColor": "#000000"
+}
+```
 
 ### Custom shield graphics
 
-In addition to the stock drawing functions, a custom draw function can be specified. `paDot` and `branson` are included as examples of this, for rendering the [Allegheny County belt system](https://en.wikipedia.org/wiki/Allegheny_County_belt_system) and the Branson, Missouri colored route system. See the file `src/custom_shields.mjs` for an example of how this is done.
+Besides the stock shapes, you can register a custom `drawFunc`. Bundled examples:
+
+| Sample                        | `drawFunc` / helper                | Use                                                                                                       |
+| ----------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| ![](media/shapes/pa-belt.svg) | `paBelt` via `paBeltShield`        | [Allegheny County belt](https://en.wikipedia.org/wiki/Allegheny_County_belt_system) icon (no route text). |
+| ![](media/shapes/branson.svg) | `branson` via `bransonRouteShield` | Branson, Missouri colored route plaque (no route text).                                                   |
+
+See `src/custom_shields.ts` for how those register with `registerDrawFunction`.
 
 ## Development
 
@@ -360,6 +511,14 @@ npm test
 ```
 
 Headless shield rendering tests use [`canvas`](https://www.npmjs.com/package/canvas). On Linux you may need the usual Cairo/Pango system packages before `npm ci` succeeds.
+
+### Shape sample SVGs
+
+Drawn-shield illustrations in this README live under `media/shapes/`. Regenerate them after changing drawing helpers or the sample script:
+
+```sh
+npm run docs:shape-samples
+```
 
 ### Test coverage
 
