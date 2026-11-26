@@ -16,12 +16,14 @@ export {
   addShieldLayer,
   createShieldRenderer,
   routeParserFromSchema,
+  parseShieldImageId,
   isSchemaShieldId,
   assertShieldSchema,
   resolveSchema,
 } from "./shield_schema";
 export type {
   BuiltinSchemaId,
+  ParsedShieldImageId,
   ShieldSchema,
   ShieldSchemaRef,
   ShieldLayerOverrides,

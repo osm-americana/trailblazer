@@ -183,9 +183,26 @@ export interface ShieldSchema {
 /**
  * Internal missing-image id prefix and attribute separator.
  * Not part of any tileset schema; expression and parser must agree.
+ * Callers that need structured fields should use {@link parseShieldImageId}
+ * instead of splitting image ids themselves.
  */
 const IMAGE_ID_PREFIX = "shield";
 const IMAGE_ID_SEPARATOR = "\n";
+
+/**
+ * Structured fields from a shield missing-image id for {@link ShieldSchema}.
+ *
+ * `network`, `ref`, `name`, and `color` are always strings (empty when absent).
+ * `color` is empty when the schema does not list that attribute.
+ */
+export interface ParsedShieldImageId {
+  /** Full missing-image id that was parsed. */
+  imageName: string;
+  network: string;
+  ref: string;
+  name: string;
+  color: string;
+}
 
 /**
  * Per-call replacements for values that live on the schema but are often
@@ -303,6 +320,8 @@ export function getShieldLayer(
  * Use this with {@link ShieldRenderer} or {@link URLShieldRenderer} when
  * installing the handler yourself. Pair it with {@link isSchemaShieldId} so
  * unrelated missing images remain available to other resolvers.
+ * For legend UI and other callers that need empty-string fields plus `color`
+ * and the raw id, use {@link parseShieldImageId}.
  */
 export function routeParserFromSchema(schema: ShieldSchemaRef): RouteParser {
   const resolved = resolveSchema(schema);
@@ -310,6 +329,39 @@ export function routeParserFromSchema(schema: ShieldSchemaRef): RouteParser {
     parse: (imageId: string) => parseSchemaImageName(resolved, imageId),
     format: (network: string, ref: string, name: string) =>
       formatSchemaImageName(resolved, network, ref, name),
+  };
+}
+
+/**
+ * Parse a shield missing-image id into style-facing fields.
+ *
+ * Unlike {@link RouteParser.parse}, every field is a string (empty when
+ * absent), `color` is included when the schema encodes it, and `imageName`
+ * is the original id. Uses the library's internal id encoding; do not split
+ * image ids on separators in client code.
+ */
+export function parseShieldImageId(
+  schema: ShieldSchemaRef,
+  imageName: string
+): ParsedShieldImageId {
+  const resolved = resolveSchema(schema);
+  if (resolved.parseImageName) {
+    const route = resolved.parseImageName(imageName);
+    return {
+      imageName,
+      network: route.network ?? "",
+      ref: route.ref ?? "",
+      name: route.name ?? "",
+      color: "",
+    };
+  }
+  const values = splitInternalImageId(resolved, imageName);
+  return {
+    imageName,
+    network: values[resolved.routeAttributes.indexOf("network")] ?? "",
+    ref: values[resolved.routeAttributes.indexOf("ref")] ?? "",
+    name: values[resolved.routeAttributes.indexOf("name")] ?? "",
+    color: values[resolved.routeAttributes.indexOf("color")] ?? "",
   };
 }
 
@@ -491,6 +543,14 @@ function routeFilter(schema: ShieldSchema): FilterSpecification {
   ] as FilterSpecification;
 }
 
+function splitInternalImageId(schema: ShieldSchema, imageId: string): string[] {
+  const prefix = IMAGE_ID_PREFIX + IMAGE_ID_SEPARATOR;
+  if (!imageId.startsWith(prefix)) {
+    throw new Error(`Image id "${imageId}" is not a ${schema.id} shield id`);
+  }
+  return imageId.split(IMAGE_ID_SEPARATOR).slice(1);
+}
+
 function parseSchemaImageName(
   schema: ShieldSchema,
   imageId: string
@@ -498,11 +558,7 @@ function parseSchemaImageName(
   if (schema.parseImageName) {
     return schema.parseImageName(imageId);
   }
-  const prefix = IMAGE_ID_PREFIX + IMAGE_ID_SEPARATOR;
-  if (!imageId.startsWith(prefix)) {
-    throw new Error(`Image id "${imageId}" is not a ${schema.id} shield id`);
-  }
-  const values = imageId.split(IMAGE_ID_SEPARATOR).slice(1);
+  const values = splitInternalImageId(schema, imageId);
   const route: RouteDefinition = {
     network: values[schema.routeAttributes.indexOf("network")] ?? "",
   };

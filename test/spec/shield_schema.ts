@@ -11,6 +11,7 @@ import {
   getShieldExpression,
   getShieldLayer,
   isSchemaShieldId,
+  parseShieldImageId,
   resolveSchema,
   routeParserFromSchema,
 } from "../../src/index";
@@ -384,6 +385,37 @@ describe("shield schema", function () {
       expect(parser.parse("shield\nCA:ON:primary\n401\n")).to.eql({
         network: "CA:ON:primary",
         ref: "401",
+      });
+    });
+  });
+
+  describe("parseShieldImageId", function () {
+    it("returns empty-string fields, color, and the raw image id", function () {
+      expect(
+        parseShieldImageId("openmaptiles", "shield\nNET\nREF\nNAME\nblue")
+      ).to.eql({
+        imageName: "shield\nNET\nREF\nNAME\nblue",
+        network: "NET",
+        ref: "REF",
+        name: "NAME",
+        color: "blue",
+      });
+      expect(parseShieldImageId("openmaptiles", "shield\nNET\n\n\n")).to.eql({
+        imageName: "shield\nNET\n\n\n",
+        network: "NET",
+        ref: "",
+        name: "",
+        color: "",
+      });
+    });
+
+    it("leaves color empty when the schema has no color attribute", function () {
+      expect(parseShieldImageId(simpleSchema(), "shield\nUS:I\n95\n")).to.eql({
+        imageName: "shield\nUS:I\n95\n",
+        network: "US:I",
+        ref: "95",
+        name: "",
+        color: "",
       });
     });
   });
