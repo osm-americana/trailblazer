@@ -5,7 +5,6 @@ import type { Map as MapLibre } from "maplibre-gl";
 import { HeadlessGraphicsFactory } from "../../src/headless_graphics";
 import {
   DEFAULT_SHIELD_SCHEMA_ID,
-  DEFAULT_SHIELD_TEXT_FONT,
   InMemorySpriteRepository,
   OPENMAPTILES,
   addShieldLayer,
@@ -179,9 +178,7 @@ describe("shield schema", function () {
 
   describe("getShieldLayer", function () {
     it("builds the OpenMapTiles highway shield layer", function () {
-      const layer = getShieldLayer("openmaptiles", {
-        textFont: ["Noto Sans Regular"],
-      });
+      const layer = getShieldLayer("openmaptiles");
 
       expect(layer).to.eql({
         id: "highway-shield",
@@ -190,7 +187,6 @@ describe("shield schema", function () {
         "source-layer": "transportation_name",
         layout: {
           "text-rotation-alignment": "viewport-glyph",
-          "text-font": ["Noto Sans Regular"],
           "text-field": getShieldExpression(),
           "text-anchor": "center",
           "text-letter-spacing": 0.7,
@@ -252,30 +248,25 @@ describe("shield schema", function () {
       });
     });
 
-    it("lets the style replace source, layer id, font, and letter spacing", function () {
+    it("lets the style replace source, layer id, and letter spacing", function () {
       const layer = getShieldLayer("openmaptiles", {
         source: "omf",
         sourceLayer: "transportation_name",
         layerId: "route-shields",
-        textFont: ["Noto Sans Regular"],
         letterSpacing: 0.2,
       });
 
       expect(layer.source).to.equal("omf");
       expect(layer["source-layer"]).to.equal("transportation_name");
       expect(layer.id).to.equal("route-shields");
-      expect(layer.layout["text-font"]).to.eql(["Noto Sans Regular"]);
+      expect(layer.layout["text-font"]).to.equal(undefined);
       expect(layer.layout["text-letter-spacing"]).to.equal(0.2);
       expect(layer.layout["text-field"]).to.eql(getShieldExpression());
     });
 
-    it("defaults the font to the MapLibre symbol-layer stack", function () {
+    it("leaves text-font unset for the MapLibre style-spec default", function () {
       const layer = getShieldLayer();
-      expect(layer.layout["text-font"]).to.eql(DEFAULT_SHIELD_TEXT_FONT);
-      expect(DEFAULT_SHIELD_TEXT_FONT).to.eql([
-        "Open Sans Regular",
-        "Arial Unicode MS Regular",
-      ]);
+      expect(layer.layout["text-font"]).to.equal(undefined);
     });
 
     it("derives the reveal ramp from the schema's classes", function () {
@@ -594,7 +585,6 @@ describe("shield schema", function () {
       const { map, calls } = fakeMap();
       addShieldLayer(map, {
         sprites: interstateSpec,
-        textFont: ["Noto Sans Regular"],
         source: "omf",
         beforeId: "road-label",
       });
@@ -603,7 +593,6 @@ describe("shield schema", function () {
       expect(calls.beforeId).to.equal("road-label");
       expect(calls.layer).to.eql(
         getShieldLayer("openmaptiles", {
-          textFont: ["Noto Sans Regular"],
           source: "omf",
         })
       );

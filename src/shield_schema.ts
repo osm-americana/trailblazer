@@ -78,8 +78,9 @@ export function resolveSchema(
  * share one encoding so the missing-image handler can undo what the layer
  * requested. Shield graphics, padding, and network definitions stay in the
  * shield specification you pass separately (for example your own
- * `shields.json`). The font stack is also separate; pass it as `textFont`
- * when building a layer.
+ * `shields.json`). The symbol layer leaves `text-font` unset so MapLibre
+ * applies its style-spec default. Shield numeral fonts come from the sprite
+ * specification's `shieldFont`, not from the layer.
  */
 export interface ShieldSchema {
   /**
@@ -193,19 +194,6 @@ const IMAGE_ID_PREFIX = "shield";
 const IMAGE_ID_SEPARATOR = "\n";
 
 /**
- * MapLibre's default symbol-layer font stack.
- *
- * Shield graphics are images, but MapLibre still requires `text-font` to
- * place formatted image sections. This is the style-spec default. A style
- * whose glyph stack does not include these fonts should pass its own
- * `textFont`.
- */
-export const DEFAULT_SHIELD_TEXT_FONT: readonly string[] = Object.freeze([
-  "Open Sans Regular",
-  "Arial Unicode MS Regular",
-]);
-
-/**
  * Per-call replacements for values that live on the schema but are often
  * chosen by the style instead.
  */
@@ -216,11 +204,6 @@ export interface ShieldLayerOverrides {
   sourceLayer?: string;
   /** Symbol layer id. Defaults to {@link ShieldSchema.layerId}. */
   layerId?: string;
-  /**
-   * Font stack for the symbol layer. Defaults to
-   * {@link DEFAULT_SHIELD_TEXT_FONT}.
-   */
-  textFont?: readonly string[];
   /**
    * Extra space between concurrent shields, in ems.
    * Defaults to `0.7`, so adjacent concurrent shields do not touch.
@@ -287,10 +270,11 @@ export function getShieldExpression(
  * sort key, and the zoom reveal ramp.
  *
  * For `"openmaptiles"`, this is the standard OpenMapTiles highway-shield
- * layer, aside from `text-font`. Pass `textFont` to match your style's glyph
- * stack. Spread the result into a style document. If the map already exists
- * and the style has no shield layer, {@link addShieldLayer} adds this layer
- * and installs the missing-image handler.
+ * layer. `text-font` is omitted so MapLibre uses its style-spec default
+ * (`Open Sans Regular`, `Arial Unicode MS Regular`). Spread the result into a
+ * style document. If the map already exists and the style has no shield layer,
+ * {@link addShieldLayer} adds this layer and installs the missing-image
+ * handler.
  */
 export function getShieldLayer(
   schema: ShieldSchemaRef = DEFAULT_SHIELD_SCHEMA_ID,
@@ -304,7 +288,6 @@ export function getShieldLayer(
     "source-layer": overrides.sourceLayer ?? resolved.sourceLayer,
     layout: {
       "text-rotation-alignment": "viewport-glyph",
-      "text-font": [...(overrides.textFont ?? DEFAULT_SHIELD_TEXT_FONT)],
       "text-field": getShieldExpression(resolved),
       "text-anchor": "center",
       "text-letter-spacing": overrides.letterSpacing ?? 0.7,
@@ -398,7 +381,6 @@ export function createShieldRenderer(
  * addShieldLayer(map, {
  *   sprites: "shields.json",
  *   source: "openmaptiles",
- *   textFont: ["Noto Sans Regular"],
  * });
  * ```
  */

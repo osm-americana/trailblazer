@@ -35,7 +35,7 @@ Shield drawing has two independent pieces:
 - A **schema** describes how route attributes are stored in the vector tiles. The built-in OpenMapTiles layout is `"openmaptiles"` (the default). Pass that string, omit `schema`, or supply a different object of the same shape for another tileset.
 - A **sprite specification** describes the artwork: which graphic, padding, and text treatment to draw for each network. Styles that want Americana's shields can point at [the premade specification](https://americanamap.org/shields.json). A different color scheme is a different sprite specification, used with the same schema.
 
-Shield graphics are images, but MapLibre still needs `text-font` to place them. Pass the fonts your style actually loads. Americana uses `["Americana-Regular"]`.
+Shield graphics are images. The symbol layer leaves `text-font` unset so MapLibre applies its style-spec default (`Open Sans Regular`, `Arial Unicode MS Regular`). Numeral text on the shields comes from `shieldFont` in the sprite specification, not from the layer.
 
 ### Add shields to a map
 
@@ -46,7 +46,6 @@ import { addShieldLayer } from "@americana/trailblazer";
 
 addShieldLayer(map, {
   sprites: "https://americanamap.org/shields.json",
-  textFont: ["Americana-Regular"],
 });
 ```
 
@@ -57,7 +56,6 @@ addShieldLayer(map, {
   schema: "openmaptiles",
   sprites: "https://americanamap.org/shields.json",
   source: "omf",
-  textFont: ["Americana-Regular"],
   beforeId: "road-label",
 });
 ```
@@ -67,7 +65,6 @@ addShieldLayer(map, {
 ```typescript
 const renderer = addShieldLayer(map, {
   sprites: shields,
-  textFont: ["Americana-Regular"],
   // Skip recreational route networks (nwn, lwn, rcn, and so on).
   filterNetwork: (network) => !/^[lrni][chimpw]n$/.test(network),
 });
@@ -91,9 +88,7 @@ import {
 } from "@americana/trailblazer";
 
 // While assembling the style:
-style.layers.push(
-  getShieldLayer("openmaptiles", { textFont: ["Americana-Regular"] })
-);
+style.layers.push(getShieldLayer("openmaptiles"));
 
 // Or, inside a layer that already exists:
 layout["text-field"] = getShieldExpression();
@@ -127,7 +122,6 @@ const MY_SCHEMA: ShieldSchema = {
 addShieldLayer(map, {
   schema: MY_SCHEMA,
   sprites: myShields,
-  textFont: ["Americana-Regular"],
 });
 ```
 

@@ -8,13 +8,12 @@ import { registerBuiltinSchema } from "../shield_schema";
  * `route_#_color` on each feature (see the README Schema section). Prefer
  * referring to it by id (`"openmaptiles"`) or omitting `schema` so helpers
  * default to it. Override `source` when the style's OpenMapTiles source has
- * another id. Pass `textFont` separately.
+ * another id.
  *
  * @example
  * ```ts
  * addShieldLayer(map, {
  *   sprites: "shields.json",
- *   textFont: ["Noto Sans Regular"],
  * });
  * ```
  */

@@ -12,7 +12,6 @@ export {
 export { getDOMPixelRatio } from "./document_graphics";
 export {
   DEFAULT_SHIELD_SCHEMA_ID,
-  DEFAULT_SHIELD_TEXT_FONT,
   getShieldExpression,
   getShieldLayer,
   addShieldLayer,
