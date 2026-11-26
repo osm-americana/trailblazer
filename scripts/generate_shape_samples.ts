@@ -7,6 +7,8 @@ import { mkdir, writeFile, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createCanvas } from "canvas";
+
 import {
   ShieldRenderer,
   InMemorySpriteRepository,
@@ -64,10 +66,95 @@ type Sample = {
   network: string;
   ref: string;
   def: Partial<ShieldDefinition>;
+  /** SVG for drawn shapes; PNG when colorLighten/Darken needs putImageData. */
+  format?: "svg" | "png";
 };
+
+/** Vibrant contrast color for banner samples (Pantone 187). */
+const bannerRed = "#bf2033";
+/** Historic US / Route 66 brown (Pantone 469), matching OSM Americana. */
+const historicBrown = "#693f23";
+/** Americana shield blue (Pantone 294) — good colorDarken demo fill. */
+const americanaBlue = "#003f87";
+/** Americana map land fill — cream behind samples so README tables match the map. */
+const americanaCream = "hsl(30, 44%, 96%)";
 
 function deg(degrees: number): number {
   return (degrees * Math.PI) / 180;
+}
+
+/**
+ * Synthetic black/white US-style badge blank for colorLighten demos.
+ * Stored as a MapLibre-like StyleImage `{ data: ImageData }`.
+ */
+function makeUsBadgeBlank(size = 48): { data: ImageData } {
+  const canvas = createCanvas(size, size);
+  const ctx = canvas.getContext("2d");
+  const tipY = size * 0.55;
+  const outer = size * 0.06;
+  const inner = size * 0.18;
+
+  ctx.beginPath();
+  ctx.moveTo(outer, outer);
+  ctx.lineTo(size - outer, outer);
+  ctx.lineTo(size - outer, tipY);
+  ctx.lineTo(size / 2, size - outer);
+  ctx.lineTo(outer, tipY);
+  ctx.closePath();
+  ctx.fillStyle = "#000000";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(inner, inner);
+  ctx.lineTo(size - inner, inner);
+  ctx.lineTo(size - inner, tipY);
+  ctx.lineTo(size / 2, size - inner);
+  ctx.lineTo(inner, tipY);
+  ctx.closePath();
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+
+  return { data: ctx.getImageData(0, 0, size, size) };
+}
+
+/** Pixels of Americana cream around each sample so shields aren't flush to the edge. */
+const creamPad = 5;
+
+/** Composite the rendered shield onto Americana cream (readable in GitHub tables). */
+function withCreamBackground(
+  canvas: {
+    width: number;
+    height: number;
+    toBuffer: () => Buffer;
+  },
+  format: "svg" | "png"
+): Buffer {
+  const { width, height } = canvas;
+  const outW = width + creamPad * 2;
+  const outH = height + creamPad * 2;
+
+  if (format === "png") {
+    const out = createCanvas(outW, outH);
+    const ctx = out.getContext("2d");
+    ctx.fillStyle = americanaCream;
+    ctx.fillRect(0, 0, outW, outH);
+    ctx.drawImage(canvas as never, creamPad, creamPad);
+    return out.toBuffer();
+  }
+
+  const svg = canvas.toBuffer().toString("utf8");
+  const creamRect = `<rect x="0" y="0" width="${outW}" height="${outH}" style="fill:hsl(30,44%,96%);stroke:none;"/>`;
+  // Expand the SVG canvas and shift drawn content so cream shows as a margin.
+  const expanded = svg
+    .replace(/width="[^"]+"/, `width="${outW}pt"`)
+    .replace(/height="[^"]+"/, `height="${outH}pt"`)
+    .replace(/viewBox="[^"]+"/, `viewBox="0 0 ${outW} ${outH}"`)
+    .replace(
+      /(<g\b[^>]*>)/,
+      `$1\n${creamRect}\n<g transform="translate(${creamPad},${creamPad})">`
+    )
+    .replace(/<\/g>\s*<\/svg>\s*$/, "</g>\n</g>\n</svg>\n");
+  return Buffer.from(expanded, "utf8");
 }
 
 function shape(
@@ -765,6 +852,64 @@ const paramSamples: Sample[] = [
       stroke
     ),
   },
+  {
+    file: "param-banners-color-black.svg",
+    network: "p:banBlk",
+    ref: "40",
+    def: banneredShield(
+      pillShield(fill, stroke, text, undefined!) as ShieldDefinition,
+      ["ALT"],
+      "#000000"
+    ),
+  },
+  {
+    file: "param-banners-color-red.svg",
+    network: "p:banRed",
+    ref: "40",
+    def: banneredShield(
+      pillShield(fill, stroke, text, undefined!) as ShieldDefinition,
+      ["ALT"],
+      bannerRed
+    ),
+  },
+
+  // colorLighten — sprite blanks only (PNG; SVG canvas cannot putImageData).
+  // Badge is 48px so the tint is obvious in the README.
+  {
+    file: "param-colorlighten-plain.png",
+    network: "p:clPlain",
+    ref: "66",
+    format: "png",
+    def: {
+      spriteBlank: "demo_badge",
+      textColor: "#000000",
+      padding: { left: 8, right: 8, top: 10, bottom: 12 },
+    },
+  },
+  {
+    file: "param-colorlighten-brown.png",
+    network: "p:clBrown",
+    ref: "66",
+    format: "png",
+    def: {
+      spriteBlank: "demo_badge",
+      textColor: historicBrown,
+      colorLighten: historicBrown,
+      padding: { left: 8, right: 8, top: 10, bottom: 12 },
+    },
+  },
+  {
+    file: "param-colordarken-blue.png",
+    network: "p:cdBlue",
+    ref: "66",
+    format: "png",
+    def: {
+      spriteBlank: "demo_badge",
+      textColor: "#ffffff",
+      colorDarken: americanaBlue,
+      padding: { left: 8, right: 8, top: 10, bottom: 12 },
+    },
+  },
 ];
 
 const samples = [...catalog, ...paramSamples];
@@ -778,12 +923,16 @@ const routeParser = {
     `shield\n${network}\n${ref}\n${name}\n`,
 };
 
-async function main(): Promise<void> {
-  await rm(outDir, { recursive: true, force: true });
-  await mkdir(outDir, { recursive: true });
+async function renderGroup(
+  group: Sample[],
+  format: "svg" | "png"
+): Promise<void> {
+  if (!group.length) {
+    return;
+  }
 
   const networks: Record<string, Partial<ShieldDefinition>> = {};
-  for (const sample of samples) {
+  for (const sample of group) {
     networks[sample.network] = sample.def;
   }
 
@@ -795,20 +944,44 @@ async function main(): Promise<void> {
   } as unknown as ShieldSpecification;
 
   const repo = new InMemorySpriteRepository();
+  if (format === "png") {
+    // StyleImage shape expected by transposeImageData: { data: ImageData }
+    repo.sprites["demo_badge"] = makeUsBadgeBlank() as never;
+  }
+
   const renderer = new ShieldRenderer(spec, routeParser)
-    .graphicsFactory(new HeadlessGraphicsFactory("svg"))
+    .graphicsFactory(
+      format === "svg"
+        ? new HeadlessGraphicsFactory("svg")
+        : new HeadlessGraphicsFactory()
+    )
     .renderOnRepository(repo);
 
-  for (const sample of samples) {
+  for (const sample of group) {
     const ctx = renderer.getGraphicForRoute(sample.network, sample.ref, "");
     if (!ctx) {
       throw new Error(`No graphic for ${sample.file} (${sample.network})`);
     }
-    const canvas = ctx.canvas as unknown as { toBuffer: () => Buffer };
+    const canvas = ctx.canvas as unknown as {
+      width: number;
+      height: number;
+      toBuffer: () => Buffer;
+    };
     const path = join(outDir, sample.file);
-    await writeFile(path, canvas.toBuffer());
-    console.log("wrote", path, `${ctx.canvas.width}x${ctx.canvas.height}`);
+    await writeFile(path, withCreamBackground(canvas, format));
+    console.log("wrote", path, `${canvas.width}x${canvas.height}`);
   }
+}
+
+async function main(): Promise<void> {
+  await rm(outDir, { recursive: true, force: true });
+  await mkdir(outDir, { recursive: true });
+
+  const svgSamples = samples.filter((s) => (s.format ?? "svg") === "svg");
+  const pngSamples = samples.filter((s) => s.format === "png");
+
+  await renderGroup(svgSamples, "svg");
+  await renderGroup(pngSamples, "png");
 
   console.log(`\n${samples.length} samples in ${outDir}`);
 }

@@ -458,35 +458,48 @@ Trapezoid only: which base is shorter.
 
 ##### Banners (`banneredShield`)
 
-Not a `params` field—`banners` on the shield definition draws labels above the blank.
+Not a `params` field—`banners` on the shield definition draws labels above the blank. Prefer short labels (≤3 characters) so they stay readable at shield size.
 
 | ![](media/shapes/param-banners-one.svg) | ![](media/shapes/param-banners-two.svg) |
 | --------------------------------------- | --------------------------------------- |
 | `["ALT"]`                               | `["ALT", "TRK"]`                        |
+
+`banneredShield`’s third argument sets `bannerTextColor` (otherwise the global `options.bannerTextColor` is used):
+
+| ![](media/shapes/param-banners-color-black.svg) | ![](media/shapes/param-banners-color-red.svg) |
+| ----------------------------------------------- | --------------------------------------------- |
+| `bannerTextColor: "#000000"`                    | `bannerTextColor: "#bf2033"`                  |
 
 Example using a helper:
 
 ```ts
 import { pillShield, banneredShield } from "@americana/trailblazer";
 
-const def = banneredShield(pillShield("#fff", "#000", "#000"), ["ALT"]);
+const def = banneredShield(
+  pillShield("#fff", "#000", "#000"),
+  ["ALT"],
+  "#bf2033"
+);
 ```
 
-Equivalent raw `shapeBlank`:
+##### `colorLighten` / `colorDarken`
 
-```json
+These recolor **sprite** blanks (`spriteBlank`), not drawn `shapeBlank` shapes. Black pixels become `colorLighten`; white pixels become `colorDarken`. Americana uses lighten for historic US routes (including Route 66) with Pantone 469 brown (`#693f23`):
+
+| ![](media/shapes/param-colorlighten-plain.png) | ![](media/shapes/param-colorlighten-brown.png)  | ![](media/shapes/param-colordarken-blue.png)   |
+| ---------------------------------------------- | ----------------------------------------------- | ---------------------------------------------- |
+| plain black/white badge                        | `colorLighten: "#693f23"` (+ brown `textColor`) | `colorDarken: "#003f87"` (+ white `textColor`) |
+
+```ts
 {
-  "shapeBlank": {
-    "drawFunc": "pill",
-    "params": {
-      "fillColor": "#ffffff",
-      "strokeColor": "#000000"
-    }
-  },
-  "textLayout": { "constraintFunc": "ellipse" },
-  "textColor": "#000000"
+  spriteBlank: ["shield_badge_2", "shield_badge_3"],
+  textColor: "#693f23",
+  colorLighten: "#693f23",
+  padding: { left: 8, right: 8, top: 10, bottom: 12 },
 }
 ```
+
+Sample shields in this section are drawn on Americana’s land cream (`hsl(30, 44%, 96%)`) so the artwork reads clearly against GitHub’s white page.
 
 ### Custom shield graphics
 
