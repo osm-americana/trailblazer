@@ -91,15 +91,17 @@ import {
 } from "@americana/trailblazer";
 
 // While assembling the style:
-style.layers.push(getShieldLayer("openmaptiles", { textFont: ["Americana-Regular"] }));
+style.layers.push(
+  getShieldLayer("openmaptiles", { textFont: ["Americana-Regular"] })
+);
 
 // Or, inside a layer that already exists:
 layout["text-field"] = getShieldExpression();
 
 // Once the map exists:
-createShieldRenderer("https://americanamap.org/shields.json").renderOnMaplibreGL(
-  map
-);
+createShieldRenderer(
+  "https://americanamap.org/shields.json"
+).renderOnMaplibreGL(map);
 ```
 
 ### Another tile schema

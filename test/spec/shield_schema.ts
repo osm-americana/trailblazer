@@ -375,10 +375,12 @@ describe("shield schema", function () {
         true
       );
       expect(isSchemaShieldId("openmaptiles", "shield")).to.equal(false);
-      expect(isSchemaShieldId("openmaptiles", "shield|US:I=95")).to.equal(false);
-      expect(
-        isSchemaShieldId(simpleSchema(), "shield\nUS:I\n95\n")
-      ).to.equal(true);
+      expect(isSchemaShieldId("openmaptiles", "shield|US:I=95")).to.equal(
+        false
+      );
+      expect(isSchemaShieldId(simpleSchema(), "shield\nUS:I\n95\n")).to.equal(
+        true
+      );
       expect(isSchemaShieldId(simpleSchema(), "shield|US:I|95|")).to.equal(
         false
       );
