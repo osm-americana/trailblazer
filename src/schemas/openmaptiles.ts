@@ -25,8 +25,6 @@ export const OPENMAPTILES: ShieldSchema = Object.freeze({
   layerId: "highway-shield",
   routeAttributes: Object.freeze(["network", "ref", "name", "color"]),
   maxConcurrency: 8,
-  imagePrefix: "shield",
-  attributeSeparator: "\n",
   propertyName: (routeIndex: number, attribute: string) =>
     `route_${routeIndex}_${attribute}`,
   roadClassProperty: "class",

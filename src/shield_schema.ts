@@ -66,22 +66,20 @@ export function resolveSchema(
 }
 
 /**
- * How a vector-tile schema stores route attributes, and how those attributes
- * become missing-image ids.
+ * How a vector-tile schema stores route attributes for shield drawing.
  *
  * Pass a schema id or object to {@link getShieldExpression}, {@link getShieldLayer},
  * {@link createShieldRenderer}, or {@link addShieldLayer}. The built-in
  * OpenMapTiles schema is `"openmaptiles"` and is the default when omitted.
  * Another tile source is a different object with this same shape.
  *
- * The schema describes tiles and the symbol layer that reads them. Shield
- * graphics, padding, and network definitions stay in the shield specification
- * you pass separately (for example your own `shields.json`). The font stack is
- * also separate, because it belongs to the style rather than to the tile
- * schema. Pass it as `textFont` when building a layer.
- *
- * A schema's image-id expression and its parser are a pair. The missing-image
- * handler has to undo exactly the id the expression wrote.
+ * The schema describes tiles and the symbol layer that reads them. Missing-image
+ * id spelling is an internal detail of this plugin: the expression and parser
+ * share one encoding so the missing-image handler can undo what the layer
+ * requested. Shield graphics, padding, and network definitions stay in the
+ * shield specification you pass separately (for example your own
+ * `shields.json`). The font stack is also separate; pass it as `textFont`
+ * when building a layer.
  */
 export interface ShieldSchema {
   /**
@@ -100,12 +98,13 @@ export interface ShieldSchema {
   layerId: string;
 
   /**
-   * Route attributes encoded into each image id, in order.
+   * Route attributes present on each concurrent route, in order.
    *
-   * The default codec reads `network`, `ref`, and `name` from these names.
-   * Further attributes are still written into the id. OpenMapTiles appends
-   * `color`, so two features that differ only by color do not share a sprite.
-   * The renderer currently paints from network, ref, and name.
+   * Must include `network` unless a custom image codec is set. The internal
+   * codec also reads `ref` and `name` when listed. Further attributes (for
+   * example OpenMapTiles `color`) still participate in image identity so two
+   * features that differ only there do not share a sprite. The renderer paints
+   * from network, ref, and name.
    */
   routeAttributes: readonly string[];
 
@@ -116,26 +115,11 @@ export interface ShieldSchema {
   maxConcurrency: number;
 
   /**
-   * Image-id prefix. OpenMapTiles uses `"shield"`, producing ids such as
-   * `"shield\nUS:I\n95\n\n"`.
-   */
-  imagePrefix: string;
-
-  /**
-   * Separator inserted before every attribute value.
-   * OpenMapTiles uses a newline. The separator must not occur inside values
-   * when the default codec is used. An empty separator is only valid together
-   * with {@link ShieldSchema.getImageName}, {@link ShieldSchema.parseImageName},
-   * and {@link ShieldSchema.formatImageName}.
-   */
-  attributeSeparator: string;
-
-  /**
    * Tile property for one attribute of one concurrent route.
    *
    * `routeIndex` is 1-based, matching OpenMapTiles (`route_1_network`).
    * The same function is used to test whether a route slot is present and,
-   * unless a custom codec is set, to read the values that go into the image id.
+   * unless a custom codec is set, to read values for the internal image id.
    */
   propertyName: (routeIndex: number, attribute: string) => string;
 
@@ -169,10 +153,10 @@ export interface ShieldSchema {
   revealZooms: readonly number[];
 
   /**
-   * Replace the generated image-id expression for one route slot.
+   * Replace the internal image-id expression for one route slot.
    * Set together with {@link ShieldSchema.parseImageName} and
-   * {@link ShieldSchema.formatImageName}. Leave all three unset to encode
-   * `imagePrefix`, then each attribute, separated by `attributeSeparator`.
+   * {@link ShieldSchema.formatImageName}. Leave all three unset to use the
+   * plugin's internal encoding of {@link ShieldSchema.routeAttributes}.
    *
    * `routeIndex` is 1-based. The library still wraps this expression in
    * `image` and still decides whether the slot exists by testing
@@ -189,17 +173,24 @@ export interface ShieldSchema {
   /**
    * Write the image id for one route. Required when
    * {@link ShieldSchema.getImageName} is set. Attributes other than network,
-   * ref, and name are written as empty when the default codec is used.
+   * ref, and name are written as empty when the internal codec is used.
    */
   formatImageName?: (network: string, ref: string, name: string) => string;
 
   /**
    * Whether a missing-image id belongs to this schema.
-   * Defaults to ids that start with `imagePrefix + attributeSeparator`.
-   * Set this when a custom codec produces a different prefix.
+   * Defaults to the internal encoding's prefix. Set this when a custom codec
+   * produces a different prefix.
    */
   acceptsImageId?: (imageId: string) => boolean;
 }
+
+/**
+ * Internal missing-image id prefix and attribute separator.
+ * Not part of any tileset schema; expression and parser must agree.
+ */
+const IMAGE_ID_PREFIX = "shield";
+const IMAGE_ID_SEPARATOR = "\n";
 
 /**
  * MapLibre's default symbol-layer font stack.
@@ -359,9 +350,7 @@ export function isSchemaShieldId(
   if (resolved.acceptsImageId) {
     return resolved.acceptsImageId(imageId);
   }
-  return imageId.startsWith(
-    resolved.imagePrefix + resolved.attributeSeparator
-  );
+  return imageId.startsWith(IMAGE_ID_PREFIX + IMAGE_ID_SEPARATOR);
 }
 
 /**
@@ -446,9 +435,9 @@ function imageNameExpression(
   if (schema.getImageName) {
     return schema.getImageName(routeIndex);
   }
-  const expression: unknown[] = ["concat", schema.imagePrefix];
+  const expression: unknown[] = ["concat", IMAGE_ID_PREFIX];
   for (const attribute of schema.routeAttributes) {
-    expression.push(schema.attributeSeparator);
+    expression.push(IMAGE_ID_SEPARATOR);
     expression.push([
       "coalesce",
       ["get", schema.propertyName(routeIndex, attribute)],
@@ -536,11 +525,11 @@ function parseSchemaImageName(
   if (schema.parseImageName) {
     return schema.parseImageName(imageId);
   }
-  const prefix = schema.imagePrefix + schema.attributeSeparator;
+  const prefix = IMAGE_ID_PREFIX + IMAGE_ID_SEPARATOR;
   if (!imageId.startsWith(prefix)) {
     throw new Error(`Image id "${imageId}" is not a ${schema.id} shield id`);
   }
-  const values = imageId.split(schema.attributeSeparator).slice(1);
+  const values = imageId.split(IMAGE_ID_SEPARATOR).slice(1);
   const route: RouteDefinition = {
     network: values[schema.routeAttributes.indexOf("network")] ?? "",
   };
@@ -569,9 +558,9 @@ function formatSchemaImageName(
     ref: ref ?? "",
     name: name ?? "",
   };
-  let imageId = schema.imagePrefix;
+  let imageId = IMAGE_ID_PREFIX;
   for (const attribute of schema.routeAttributes) {
-    imageId += schema.attributeSeparator + (known[attribute] ?? "");
+    imageId += IMAGE_ID_SEPARATOR + (known[attribute] ?? "");
   }
   return imageId;
 }
@@ -603,12 +592,6 @@ export function assertShieldSchema(schema: ShieldSchema): void {
     throw schemaError(
       schema,
       'routeAttributes must include "network", or set a custom image codec'
-    );
-  }
-  if (!customCodec && !schema.attributeSeparator) {
-    throw schemaError(
-      schema,
-      "attributeSeparator must be non-empty, or set a custom image codec"
     );
   }
   if (schema.roadClassOrder.length !== schema.revealZooms.length) {

@@ -52,8 +52,6 @@ function simpleSchema(overrides: Partial<ShieldSchema> = {}): ShieldSchema {
     layerId: "shields",
     routeAttributes: ["network", "ref", "name"],
     maxConcurrency: 2,
-    imagePrefix: "shield",
-    attributeSeparator: "|",
     propertyName: (routeIndex, attribute) => `${attribute}_${routeIndex}`,
     roadClassProperty: "kind",
     roadClassOrder: ["highway", "street"],
@@ -76,8 +74,6 @@ describe("shield schema", function () {
         "color",
       ]);
       expect(OPENMAPTILES.maxConcurrency).to.equal(8);
-      expect(OPENMAPTILES.imagePrefix).to.equal("shield");
-      expect(OPENMAPTILES.attributeSeparator).to.equal("\n");
       expect(OPENMAPTILES.propertyName(1, "network")).to.equal(
         "route_1_network"
       );
@@ -168,11 +164,11 @@ describe("shield schema", function () {
           [
             "concat",
             "shield",
-            "|",
+            "\n",
             ["coalesce", ["get", "network_2"], ""],
-            "|",
+            "\n",
             ["coalesce", ["get", "ref_2"], ""],
-            "|",
+            "\n",
             ["coalesce", ["get", "name_2"], ""],
           ],
         ],
@@ -374,26 +370,26 @@ describe("shield schema", function () {
       );
     });
 
-    it("accepts only ids with this schema's prefix and separator", function () {
+    it("accepts only ids with the internal encoding prefix", function () {
       expect(isSchemaShieldId("openmaptiles", "shield\nUS:I\n95\n\n")).to.equal(
         true
       );
       expect(isSchemaShieldId("openmaptiles", "shield")).to.equal(false);
       expect(isSchemaShieldId("openmaptiles", "shield|US:I=95")).to.equal(false);
+      expect(
+        isSchemaShieldId(simpleSchema(), "shield\nUS:I\n95\n")
+      ).to.equal(true);
       expect(isSchemaShieldId(simpleSchema(), "shield|US:I|95|")).to.equal(
-        true
-      );
-      expect(isSchemaShieldId(simpleSchema(), "shield\nUS:I\n95\n\n")).to.equal(
         false
       );
     });
 
-    it("round-trips a schema that uses a different separator", function () {
+    it("uses the same internal encoding for a custom tile schema", function () {
       const parser = routeParserFromSchema(simpleSchema());
       expect(parser.format("CA:ON:primary", "401", "")).to.equal(
-        "shield|CA:ON:primary|401|"
+        "shield\nCA:ON:primary\n401\n"
       );
-      expect(parser.parse("shield|CA:ON:primary|401|")).to.eql({
+      expect(parser.parse("shield\nCA:ON:primary\n401\n")).to.eql({
         network: "CA:ON:primary",
         ref: "401",
       });
@@ -446,7 +442,7 @@ describe("shield schema", function () {
         ref: "95",
       });
       expect(isSchemaShieldId(custom, "rte:US:I=95")).to.equal(true);
-      expect(isSchemaShieldId(custom, "shield|US:I|95|")).to.equal(false);
+      expect(isSchemaShieldId(custom, "shield\nUS:I\n95\n")).to.equal(false);
     });
   });
 

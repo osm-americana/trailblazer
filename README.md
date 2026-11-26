@@ -116,8 +116,6 @@ const MY_SCHEMA: ShieldSchema = {
   layerId: "highway-shield",
   routeAttributes: ["network", "ref", "name"],
   maxConcurrency: 2,
-  imagePrefix: "shield",
-  attributeSeparator: "|",
   propertyName: (routeIndex, attribute) => `${attribute}_${routeIndex}`,
   roadClassProperty: "kind",
   roadClassOrder: ["highway", "street"],
@@ -131,11 +129,11 @@ addShieldLayer(map, {
 });
 ```
 
-That schema reads `network_1`, `ref_1`, and `name_1`. `revealZooms` must be the same length as `roadClassOrder` and strictly increasing. If you need a custom missing-image id spelling, set `getImageName`, `parseImageName`, and `formatImageName` together (and `acceptsImageId` when the prefix differs).
+That schema reads `network_1`, `ref_1`, and `name_1`. `revealZooms` must be the same length as `roadClassOrder` and strictly increasing. Missing-image id spelling is handled internally; override it only if needed by setting `getImageName`, `parseImageName`, and `formatImageName` together (and `acceptsImageId` when the prefix differs).
 
 ## Schema
 
-Trailblazer does not require a particular tileset. Its default schema (`"openmaptiles"`) is for sources that expose concurrent routes the way [OpenMapTiles](https://openmaptiles.org/schema/#transportation_name) does on the `transportation_name` layer. For each concurrent route index `#` (1-based):
+Trailblazer can draw shields from any GeoJSON or vector tile source that exposes concurrent routes with the following properties on each feature. For each concurrent route index `#` (1-based):
 
 - **`route_#_network`** (`string`): The route network, corresponding in concept to the OpenStreetMap [`network`](https://wiki.openstreetmap.org/wiki/Key:network) tag. For example, `US:I`.
 - **`route_#_ref`** (`string`): The route number or other text drawn on the shield, corresponding in concept to the OpenStreetMap [`ref`](https://wiki.openstreetmap.org/wiki/Key:ref) tag.
@@ -144,7 +142,7 @@ Trailblazer does not require a particular tileset. Its default schema (`"openmap
 
 Features may also carry a **`class`** property (for example `motorway`, `trunk`, `primary`) used for sorting and reveal-by-zoom by road importance.
 
-If your tileset uses different property names or layers, pass a custom schema object instead of `"openmaptiles"`.
+The [OpenMapTiles](https://openmaptiles.org/schema/#transportation_name) `transportation_name` layer already matches this layout; that is Trailblazer's default (`"openmaptiles"`). If your tileset uses different property names or layers, pass a custom schema object instead.
 
 ## Manual setup
 
