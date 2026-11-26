@@ -205,7 +205,7 @@ const catalog: Sample[] = [
     ref: "40",
     def: banneredShield(
       pillShield(fill, stroke, text, undefined!) as ShieldDefinition,
-      ["TO"],
+      ["ALT"],
       stroke
     ),
   },
@@ -458,15 +458,16 @@ const paramSamples: Sample[] = [
     ),
   },
   {
-    file: "param-yoffset-hexv-12.svg",
-    network: "p:yHex12",
+    file: "param-yoffset-hexv-6.svg",
+    network: "p:yHex6",
     ref: "6",
     def: shape(
       "hexagonVertical",
-      { fillColor: fill, strokeColor: stroke, yOffset: 12, radius: 2 },
+      { fillColor: fill, strokeColor: stroke, yOffset: 6, radius: 2 },
       {
         textLayout: roundedRectTextConstraint(2),
-        padding: { left: 3, right: 3, top: 12, bottom: 12 },
+        // Leave room for the pointed ends; 2*yOffset must stay under shieldSize.
+        padding: { left: 3, right: 3, top: 7, bottom: 7 },
       }
     ),
   },
@@ -530,21 +531,21 @@ const paramSamples: Sample[] = [
     ),
   },
   {
-    file: "param-sideangle-trap-28.svg",
-    network: "p:saTrap28",
+    file: "param-sideangle-trap-15.svg",
+    network: "p:saTrap15",
     ref: "30",
     def: shape(
       "trapezoid",
       {
         fillColor: fill,
         strokeColor: stroke,
-        sideAngle: deg(28),
+        sideAngle: deg(15),
         radius: 0,
         shortSideUp: false,
       },
       {
         textLayout: roundedRectTextConstraint(0),
-        padding: { left: 14, right: 14, top: 3, bottom: 4 },
+        padding: { left: 8, right: 8, top: 3, bottom: 4 },
       }
     ),
   },
@@ -743,14 +744,14 @@ const paramSamples: Sample[] = [
     ),
   },
 
-  // banners (multi)
+  // banners (multi) — keep labels ≤3 chars so they stay readable at sample size
   {
     file: "param-banners-one.svg",
     network: "p:ban1",
     ref: "40",
     def: banneredShield(
       pillShield(fill, stroke, text, undefined!) as ShieldDefinition,
-      ["TO"],
+      ["ALT"],
       stroke
     ),
   },
@@ -760,7 +761,7 @@ const paramSamples: Sample[] = [
     ref: "40",
     def: banneredShield(
       pillShield(fill, stroke, text, undefined!) as ShieldDefinition,
-      ["NORTH", "TO"],
+      ["ALT", "TRK"],
       stroke
     ),
   },

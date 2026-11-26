@@ -400,9 +400,9 @@ Escutcheon:
 
 Vertical hexagon:
 
-| ![](media/shapes/param-yoffset-hexv-2.svg) | ![](media/shapes/param-yoffset-hexv-12.svg) |
-| ------------------------------------------ | ------------------------------------------- |
-| `yOffset: 2`                               | `yOffset: 12`                               |
+| ![](media/shapes/param-yoffset-hexv-2.svg) | ![](media/shapes/param-yoffset-hexv-6.svg) |
+| ------------------------------------------ | ------------------------------------------ |
+| `yOffset: 2`                               | `yOffset: 6`                               |
 
 Pentagon tip:
 
@@ -416,9 +416,9 @@ How far the sides lean from vertical. In raw `params` this is **radians**. The `
 
 Trapezoid:
 
-| ![](media/shapes/param-sideangle-trap-5.svg) | ![](media/shapes/param-sideangle-trap-28.svg) |
+| ![](media/shapes/param-sideangle-trap-5.svg) | ![](media/shapes/param-sideangle-trap-15.svg) |
 | -------------------------------------------- | --------------------------------------------- |
-| 5°                                           | 28°                                           |
+| 5°                                           | 15°                                           |
 
 Horizontal hexagon:
 
@@ -462,14 +462,14 @@ Not a `params` field—`banners` on the shield definition draws labels above the
 
 | ![](media/shapes/param-banners-one.svg) | ![](media/shapes/param-banners-two.svg) |
 | --------------------------------------- | --------------------------------------- |
-| `["TO"]`                                | `["NORTH", "TO"]`                       |
+| `["ALT"]`                               | `["ALT", "TRK"]`                        |
 
 Example using a helper:
 
 ```ts
 import { pillShield, banneredShield } from "@americana/trailblazer";
 
-const def = banneredShield(pillShield("#fff", "#000", "#000"), ["TO"]);
+const def = banneredShield(pillShield("#fff", "#000", "#000"), ["ALT"]);
 ```
 
 Equivalent raw `shapeBlank`:
