@@ -8,6 +8,7 @@ export {
   InMemorySpriteRepository,
   AbstractShieldRenderer,
 } from "./shield_renderer";
+export type { ShieldRendererOptions } from "./shield_renderer";
 
 export { getDOMPixelRatio } from "./document_graphics";
 export {

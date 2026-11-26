@@ -530,9 +530,10 @@ describe("shield schema", function () {
   describe("createShieldRenderer", function () {
     it("draws an OpenMapTiles id and ignores other missing images", function () {
       const repo = new InMemorySpriteRepository();
-      const renderer = createShieldRenderer(interstateSpec, "openmaptiles")
-        .graphicsFactory(new HeadlessGraphicsFactory())
-        .renderOnRepository(repo);
+      const renderer = createShieldRenderer(interstateSpec, "openmaptiles", {
+        graphicsFactory: new HeadlessGraphicsFactory(),
+      });
+      renderer.attachToRepository(repo);
       const resolver = renderer.getMissingStyleImageResolver();
       const imageId = "shield\nUS:I\n95\n\n";
 
@@ -547,15 +548,26 @@ describe("shield schema", function () {
     it("stores an empty sprite when the network filter declines the route", function () {
       const repo = new InMemorySpriteRepository();
       const imageId = "shield\nUS:I\n95\n\n";
-      createShieldRenderer(interstateSpec, "openmaptiles", {
+      const renderer = createShieldRenderer(interstateSpec, "openmaptiles", {
         filterNetworks: /^US:I$/,
-      })
-        .graphicsFactory(new HeadlessGraphicsFactory())
-        .renderOnRepository(repo)
-        .getMissingStyleImageResolver()(imageId);
+        graphicsFactory: new HeadlessGraphicsFactory(),
+      });
+      renderer.attachToRepository(repo);
+      renderer.getMissingStyleImageResolver()(imageId);
 
       expect(repo.getSprite(imageId).width).to.equal(1);
       expect(repo.getSprite(imageId).height).to.equal(1);
+    });
+
+    it("rejects a second attach", function () {
+      const repo = new InMemorySpriteRepository();
+      const renderer = createShieldRenderer(interstateSpec, "openmaptiles", {
+        graphicsFactory: new HeadlessGraphicsFactory(),
+      });
+      renderer.attachToRepository(repo);
+      expect(() => renderer.attachToRepository(repo)).to.throw(
+        /already attached/
+      );
     });
   });
 

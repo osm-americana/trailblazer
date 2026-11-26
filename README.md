@@ -61,7 +61,7 @@ addShieldLayer(map, {
 });
 ```
 
-`shields` may be a URL or a shield specification object built in code. Pass `filterNetworks` to decline route networks by pattern before the first render. The function returns the renderer, already attached to the map. Call `onShieldDefLoad` on that return value to observe the loaded network definitions:
+`shields` may be a URL or a shield specification object built in code. Pass `filterNetworks` to decline route networks by pattern before the first render. The function returns the renderer, already attached to the map. Observe loaded network definitions with `onShieldDefLoad` in the options:
 
 ```typescript
 const renderer = addShieldLayer(map, {
@@ -69,10 +69,9 @@ const renderer = addShieldLayer(map, {
   shields,
   // Skip recreational route networks (nwn, lwn, rcn, and so on).
   filterNetworks: /^[lrni][chimpw]n$/,
-});
-
-renderer.onShieldDefLoad((networks) => {
-  // `networks` is the shield specification after it loads.
+  onShieldDefLoad: (networks) => {
+    // `networks` is the shield specification after it loads.
+  },
 });
 ```
 
@@ -96,10 +95,15 @@ style.layers.push(getShieldLayer("openmaptiles"));
 layout["text-field"] = getShieldExpression("openmaptiles");
 
 // Once the map exists:
-createShieldRenderer("https://americanamap.org/shields.json", "openmaptiles", {
-  // Skip recreational route networks (nwn, lwn, rcn, and so on).
-  filterNetworks: /^[lrni][chimpw]n$/,
-}).renderOnMaplibreGL(map);
+const renderer = createShieldRenderer(
+  "https://americanamap.org/shields.json",
+  "openmaptiles",
+  {
+    // Skip recreational route networks (nwn, lwn, rcn, and so on).
+    filterNetworks: /^[lrni][chimpw]n$/,
+  }
+);
+renderer.attachToMap(map);
 ```
 
 ### Another tile schema
@@ -196,20 +200,24 @@ Rendering shields requires the following compoments:
 
 5. **Create shield definitions and artwork**. The shield definition is expressed as a JSON file along with a set of sprites containing any raster artwork used for the shields. It can be generated as an object or hosted as a JSON file accessible by URL. See the next section for how to create this definition. [A premade shield definition file](https://americanamap.org/shields.json) is available for maps that have a color scheme and visual style similar to OSM Americana.
 
-6. **Hook up the shield generator to a maplibre-gl-js map**. `addShieldLayer` and `createShieldRenderer` do this for a schema object. To wire it yourself, pass either the URL of the JSON shield definition or an object built in code. There are two separate classes for each approach.
+6. **Hook up the shield generator to a maplibre-gl-js map**. `addShieldLayer` and `createShieldRenderer` do this for a schema object. To wire it yourself, pass either the URL of the JSON shield definition or an object built in code. Filters and other setup go in a single options object; attach to a map once (a second attach throws).
 
    ```typescript
-   new URLShieldRenderer("shields.json", routeParser)
-     .filterImageID(shieldPredicate)
-     .filterNetwork(networkPredicate)
-     .renderOnMaplibreGL(map);
+   const fromUrl = new URLShieldRenderer("shields.json", {
+     routeParser,
+     filterImageID: shieldPredicate,
+     filterNetwork: networkPredicate,
+   });
+   fromUrl.attachToMap(map);
    ```
 
    ```typescript
-   new ShieldRenderer(shields, routeParser)
-     .filterImageID(shieldPredicate)
-     .filterNetwork(networkPredicate)
-     .renderOnMaplibreGL(map);
+   const fromObject = new ShieldRenderer(shields, {
+     routeParser,
+     filterImageID: shieldPredicate,
+     filterNetwork: networkPredicate,
+   });
+   fromObject.attachToMap(map);
    ```
 
 ## Shield definition

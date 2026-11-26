@@ -80,26 +80,63 @@ class MaplibreGLSpriteRepository implements SpriteRepository {
   }
 }
 
-/** Base class for shield renderers. Shield renderers use a builder pattern to configure its options. */
+/**
+ * Construction-time configuration for a shield renderer.
+ *
+ * Pass filters, graphics, and callbacks here instead of chaining setters.
+ * Attach the renderer to a map or repository once with
+ * {@link AbstractShieldRenderer.attachToMap} or
+ * {@link AbstractShieldRenderer.attachToRepository}.
+ */
+export interface ShieldRendererOptions {
+  /** Parses missing-image ids into network/ref/name. */
+  routeParser: RouteParser;
+  /** Which unhandled image ids this renderer claims. Defaults to all. */
+  filterImageID?: StringPredicate;
+  /** Which route networks to draw. Defaults to all. */
+  filterNetwork?: StringPredicate;
+  /** Debugging overrides applied before the first render. */
+  debugOptions?: DebugOptions;
+  /** Drawing surface factory. Defaults to a DOM canvas factory. */
+  graphicsFactory?: GraphicsFactory;
+  /** Fires when network definitions are available (immediately or after fetch). */
+  onShieldDefLoad?: (shields: ShieldDefinitions) => void;
+}
+
+/** Base class for shield renderers. */
 export class AbstractShieldRenderer {
   private _shieldPredicate: StringPredicate = () => true;
   private _networkPredicate: StringPredicate = () => true;
   private _routeParser: RouteParser;
   private _fontSpec: string;
   private _map: MapLibre;
+  private _attached = false;
   private _fontsLoaded: boolean = false;
   /** Cache images that are loaded before fonts so they can be re-rendered later */
   private _preFontImageCache: Map<string, RouteDefinition> = new Map();
 
   /** @hidden */
   private _renderContext: ShieldRenderingContext;
-  private _shieldDefCallbacks = [];
+  private _shieldDefCallbacks: Array<(shields: ShieldDefinitions) => void> = [];
 
-  /** Create a shield renderer */
-  constructor(routeParser: RouteParser) {
-    this._routeParser = routeParser;
+  /** Create a shield renderer from an options pack. */
+  constructor(options: ShieldRendererOptions) {
+    this._routeParser = options.routeParser;
     this._renderContext = new ShieldRenderingContext();
-    this._renderContext.gfxFactory = new DOMGraphicsFactory();
+    this._renderContext.gfxFactory =
+      options.graphicsFactory ?? new DOMGraphicsFactory();
+    if (options.filterImageID) {
+      this._shieldPredicate = options.filterImageID;
+    }
+    if (options.filterNetwork) {
+      this._networkPredicate = options.filterNetwork;
+    }
+    if (options.debugOptions) {
+      this._renderContext.debugOptions = options.debugOptions;
+    }
+    if (options.onShieldDefLoad) {
+      this._shieldDefCallbacks.push(options.onShieldDefLoad);
+    }
   }
 
   /** Specify which shields to draw and with what graphics */
@@ -161,45 +198,28 @@ export class AbstractShieldRenderer {
     return this._renderContext.shieldDef;
   }
 
-  /** Set debugging options */
-  public debugOptions(debugOptions: DebugOptions): AbstractShieldRenderer {
-    this._renderContext.debugOptions = debugOptions;
-    return this;
-  }
-
-  /** Set which unhandled sprite IDs this renderer handles */
-  public filterImageID(
-    shieldPredicate: StringPredicate
-  ): AbstractShieldRenderer {
-    this._shieldPredicate = shieldPredicate;
-    return this;
-  }
-
-  /** Set which network values this renderer handles */
-  public filterNetwork(
-    networkPredicate: StringPredicate
-  ): AbstractShieldRenderer {
-    this._networkPredicate = networkPredicate;
-    return this;
-  }
-
-  /** Set which graphics context to draw shields to */
-  public graphicsFactory(gfxFactory: GraphicsFactory): AbstractShieldRenderer {
-    this._renderContext.gfxFactory = gfxFactory;
-    return this;
-  }
-
-  /** Set which MaplibreGL map to handle shields for */
-  public renderOnMaplibreGL(map: MapLibre): AbstractShieldRenderer {
+  /**
+   * Attach this renderer to a MapLibre map.
+   *
+   * May be called only once. A second call throws: the renderer stores a
+   * backpointer to the map and its sprite repository, and swapping maps would
+   * leave those mismatched.
+   */
+  public attachToMap(map: MapLibre): void {
+    if (this._attached) {
+      throw new Error(
+        "Shield renderer is already attached; create a new renderer for another map or repository"
+      );
+    }
+    this._attached = true;
     this._map = map;
     if (this._fontSpec) {
       this.reloadShieldsOnFontLoad();
     }
-    this.renderOnRepository(new MaplibreGLSpriteRepository(map));
+    this._renderContext.spriteRepo = new MaplibreGLSpriteRepository(map);
     // MapLibre GL JS v6+ resolves missing images via this callback; the
     // styleimagemissing event is observation-only and cannot satisfy requests.
     map.setMissingStyleImageResolver(this.getMissingStyleImageResolver());
-    return this;
   }
 
   private reloadShieldsOnFontLoad(): void {
@@ -210,34 +230,29 @@ export class AbstractShieldRenderer {
     }
   }
 
-  /** Set a callback that fires when shield definitions are loaded */
-  public onShieldDefLoad(
-    callback: (shields: ShieldDefinitions) => void
-  ): AbstractShieldRenderer {
-    if (this._renderContext.shieldDef) {
-      callback(this._renderContext.shieldDef);
-    } else {
-      this._shieldDefCallbacks.push(callback);
+  /**
+   * Attach this renderer to a sprite repository (for headless or tests).
+   *
+   * May be called only once, and not after {@link attachToMap}.
+   */
+  public attachToRepository(repo: SpriteRepository): void {
+    if (this._attached) {
+      throw new Error(
+        "Shield renderer is already attached; create a new renderer for another map or repository"
+      );
     }
-    return this;
-  }
-
-  /** Set the storage location for existing and generated sprite images */
-  public renderOnRepository(repo: SpriteRepository): AbstractShieldRenderer {
-    if (!this._renderContext.spriteRepo) {
-      this._renderContext.spriteRepo = repo;
-    }
-    return this;
+    this._attached = true;
+    this._renderContext.spriteRepo = repo;
   }
 
   /**
    * Get the callback for MapLibre's missing-style-image resolver.
    *
    * Pass this to `map.setMissingStyleImageResolver()`, or use
-   * {@link AbstractShieldRenderer.renderOnMaplibreGL} which installs it
-   * automatically. Image IDs that fail
-   * {@link AbstractShieldRenderer.filterImageID} are left unresolved so other
-   * resolvers can handle them when composed by the application.
+   * {@link AbstractShieldRenderer.attachToMap} which installs it
+   * automatically. Image IDs that fail the configured `filterImageID` are left
+   * unresolved so other resolvers can handle them when composed by the
+   * application.
    *
    * @see https://maplibre.org/maplibre-gl-js/docs/API/type-aliases/MissingStyleImageResolver/
    */
@@ -290,56 +305,43 @@ export class AbstractShieldRenderer {
 }
 
 /**
- * A shield renderer configured from a JSON specification
+ * A shield renderer configured from a JSON specification.
  *
  * @example
  *
- * const shields = {
- *     "US:I": {
- *         textColor: Color.shields.white,
- *         spriteBlank: ["shield_us_interstate_2", "shield_us_interstate_3"],
- *         textLayout: textConstraint("southHalfEllipse"),
- *         padding: {
- *             left: 4,
- *             right: 4,
- *             top: 6,
- *             bottom: 5,
- *         },
- *     }
- * };
- *
- * const shieldRenderer = new ShieldRenderer(shields, routeParser)
- *     .filterImageID(shieldPredicate)
- *     .filterNetwork(networkPredicate)
- *     .renderOnMaplibreGL(map)
- *     .onShieldDefLoad((shields) => afterShieldRendererLoads(shields)); //Post config
+ * const shieldRenderer = new ShieldRenderer(shields, {
+ *   routeParser,
+ *   filterImageID: shieldPredicate,
+ *   filterNetwork: networkPredicate,
+ * });
+ * shieldRenderer.attachToMap(map);
  */
 export class ShieldRenderer extends AbstractShieldRenderer {
-  constructor(shieldSpec: ShieldSpecification, routeParser: RouteParser) {
-    super(routeParser);
+  constructor(shieldSpec: ShieldSpecification, options: ShieldRendererOptions) {
+    super(options);
     this.setShields(shieldSpec);
   }
 }
 
 /**
- * A shield renderer configured from a URL containing a JSON specification
+ * A shield renderer configured from a URL containing a JSON specification.
  *
  * @example
  *
- * const shieldRenderer = new URLShieldRenderer("shields.json", routeParser)
- *     .filterImageID(shieldPredicate)
- *     .filterNetwork(networkPredicate)
- *     .renderOnMaplibreGL(map)
- *     .onShieldDefLoad((shields) => afterShieldRendererLoads(shields)); //Post config
+ * const shieldRenderer = new URLShieldRenderer("shields.json", {
+ *   routeParser,
+ *   filterImageID: shieldPredicate,
+ *   filterNetwork: networkPredicate,
+ * });
+ * shieldRenderer.attachToMap(map);
  **/
 export class URLShieldRenderer extends AbstractShieldRenderer {
   constructor(
     /** URL containing the JSON shield definition */
     shieldsURL: string | URL,
-    /** Function that extracts route identification from a sprite string */
-    routeParser: RouteParser
+    options: ShieldRendererOptions
   ) {
-    super(routeParser);
+    super(options);
     this.setShieldURL(shieldsURL);
   }
 

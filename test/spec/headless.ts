@@ -60,9 +60,11 @@ describe("headless", function () {
           `shield\n${network}\n${ref}\n${name}\n`,
       };
 
-      const renderer = new ShieldRenderer(shields as any, routeParser)
-        .graphicsFactory(new HeadlessGraphicsFactory())
-        .renderOnRepository(repo);
+      const renderer = new ShieldRenderer(shields as any, {
+        routeParser,
+        graphicsFactory: new HeadlessGraphicsFactory(),
+      });
+      renderer.attachToRepository(repo);
 
       const imageId = "shield\nUS:I\n95\n\n";
       renderer.getMissingStyleImageResolver()(imageId);

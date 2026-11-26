@@ -6,8 +6,10 @@ import type {
 } from "maplibre-gl";
 import type {
   DebugOptions,
+  GraphicsFactory,
   RouteDefinition,
   RouteParser,
+  ShieldDefinitions,
   ShieldSpecification,
   StringPredicate,
 } from "./types";
@@ -15,6 +17,7 @@ import {
   AbstractShieldRenderer,
   ShieldRenderer,
   URLShieldRenderer,
+  type ShieldRendererOptions,
 } from "./shield_renderer";
 
 /**
@@ -240,6 +243,10 @@ export interface CreateShieldRendererOptions {
   filterNetworks?: RegExp;
   /** Debugging options applied before the first render. */
   debugOptions?: DebugOptions;
+  /** Drawing surface factory. Defaults to a DOM canvas factory. */
+  graphicsFactory?: GraphicsFactory;
+  /** Fires when network definitions are available. */
+  onShieldDefLoad?: (shields: ShieldDefinitions) => void;
 }
 
 /**
@@ -401,16 +408,17 @@ export function isSchemaShieldId(
 /**
  * Renderer whose parser and image-id filter match `schema`.
  *
- * Call {@link AbstractShieldRenderer.renderOnMaplibreGL} to install it.
+ * Call {@link AbstractShieldRenderer.attachToMap} once to install it.
  * Use this when the style document already contains the shield layer.
  * {@link addShieldLayer} is the one-call version for a map whose style does
  * not have that layer yet.
  *
  * @example
  * ```ts
- * createShieldRenderer("shields.json", "openmaptiles", {
+ * const renderer = createShieldRenderer("shields.json", "openmaptiles", {
  *   filterNetworks: /^[lrni][chimpw]n$/,
- * }).renderOnMaplibreGL(map);
+ * });
+ * renderer.attachToMap(map);
  * ```
  */
 export function createShieldRenderer(
@@ -420,23 +428,23 @@ export function createShieldRenderer(
 ): AbstractShieldRenderer {
   const resolved = resolveSchema(schema);
   const parser = routeParserFromSchema(resolved);
-  const renderer = isShieldSpecification(shields)
-    ? new ShieldRenderer(shields, parser)
-    : new URLShieldRenderer(shields, parser);
   const extraImageFilter = options.filterImageID;
-  renderer.filterImageID(
-    (imageId) =>
+  const rendererOptions: ShieldRendererOptions = {
+    routeParser: parser,
+    filterImageID: (imageId) =>
       isSchemaShieldId(resolved, imageId) &&
-      (!extraImageFilter || extraImageFilter(imageId))
-  );
+      (!extraImageFilter || extraImageFilter(imageId)),
+    debugOptions: options.debugOptions,
+    graphicsFactory: options.graphicsFactory,
+    onShieldDefLoad: options.onShieldDefLoad,
+  };
   if (options.filterNetworks) {
     const filter = options.filterNetworks;
-    renderer.filterNetwork((network) => !filter.test(network));
+    rendererOptions.filterNetwork = (network) => !filter.test(network);
   }
-  if (options.debugOptions) {
-    renderer.debugOptions(options.debugOptions);
-  }
-  return renderer;
+  return isShieldSpecification(shields)
+    ? new ShieldRenderer(shields, rendererOptions)
+    : new URLShieldRenderer(shields, rendererOptions);
 }
 
 /**
@@ -465,7 +473,7 @@ export function addShieldLayer(
 ): AbstractShieldRenderer {
   const schema = resolveSchema(options.schema);
   const renderer = createShieldRenderer(options.shields, schema, options);
-  renderer.renderOnMaplibreGL(map);
+  renderer.attachToMap(map);
   map.addLayer(getShieldLayer(schema, options), options.beforeId);
   return renderer;
 }
