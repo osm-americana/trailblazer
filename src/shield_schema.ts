@@ -24,12 +24,9 @@ export type BuiltinSchemaId = "openmaptiles";
 
 /**
  * A built-in schema id, or a full {@link ShieldSchema} for a custom tileset.
- * Built-in helpers default to `"openmaptiles"` when omitted.
+ * Callers must pass a schema to every helper; there is no default.
  */
 export type ShieldSchemaRef = ShieldSchema | BuiltinSchemaId;
-
-/** Default schema id used when callers omit `schema`. */
-export const DEFAULT_SHIELD_SCHEMA_ID: BuiltinSchemaId = "openmaptiles";
 
 const builtinSchemas = new Map<string, ShieldSchema>();
 
@@ -45,11 +42,8 @@ export function registerBuiltinSchema(schema: ShieldSchema): void {
 /**
  * Resolve a schema id or object to a {@link ShieldSchema}.
  * Strings look up built-ins; objects are validated and returned.
- * Omitting `schema` (or passing `undefined`) uses {@link DEFAULT_SHIELD_SCHEMA_ID}.
  */
-export function resolveSchema(
-  schema: ShieldSchemaRef = DEFAULT_SHIELD_SCHEMA_ID
-): ShieldSchema {
+export function resolveSchema(schema: ShieldSchemaRef): ShieldSchema {
   if (typeof schema === "string") {
     const resolved = builtinSchemas.get(schema);
     if (!resolved) {
@@ -70,8 +64,8 @@ export function resolveSchema(
  *
  * Pass a schema id or object to {@link getShieldExpression}, {@link getShieldLayer},
  * {@link createShieldRenderer}, or {@link addShieldLayer}. The built-in
- * OpenMapTiles schema is `"openmaptiles"` and is the default when omitted.
- * Another tile source is a different object with this same shape.
+ * OpenMapTiles schema is `"openmaptiles"`. Another tile source is a different
+ * object with this same shape.
  *
  * The schema describes tiles and the symbol layer that reads them. Missing-image
  * id spelling is an internal detail of this plugin: the expression and parser
@@ -217,10 +211,10 @@ export interface ShieldLayerOverrides {
  */
 export interface AddShieldLayerOptions extends ShieldLayerOverrides {
   /**
-   * Tile schema id or object. Defaults to `"openmaptiles"`.
-   * Pass a custom {@link ShieldSchema} when the tileset differs.
+   * Tile schema id or object. Pass `"openmaptiles"` for OpenMapTiles, or a
+   * custom {@link ShieldSchema} when the tileset differs.
    */
-  schema?: ShieldSchemaRef;
+  schema: ShieldSchemaRef;
   /**
    * Shield artwork and network definitions.
    * A string or {@link URL} is fetched. A {@link ShieldSpecification} is used
@@ -251,7 +245,7 @@ export interface AddShieldLayerOptions extends ShieldLayerOverrides {
  * {@link addShieldLayer} instead of assembling the rest of the layer yourself.
  */
 export function getShieldExpression(
-  schema: ShieldSchemaRef = DEFAULT_SHIELD_SCHEMA_ID
+  schema: ShieldSchemaRef
 ): ExpressionSpecification {
   const resolved = resolveSchema(schema);
   const expression: unknown[] = ["format"];
@@ -277,7 +271,7 @@ export function getShieldExpression(
  * handler.
  */
 export function getShieldLayer(
-  schema: ShieldSchemaRef = DEFAULT_SHIELD_SCHEMA_ID,
+  schema: ShieldSchemaRef,
   overrides: ShieldLayerOverrides = {}
 ): SymbolLayerSpecification {
   const resolved = resolveSchema(schema);
@@ -310,9 +304,7 @@ export function getShieldLayer(
  * installing the handler yourself. Pair it with {@link isSchemaShieldId} so
  * unrelated missing images remain available to other resolvers.
  */
-export function routeParserFromSchema(
-  schema: ShieldSchemaRef = DEFAULT_SHIELD_SCHEMA_ID
-): RouteParser {
+export function routeParserFromSchema(schema: ShieldSchemaRef): RouteParser {
   const resolved = resolveSchema(schema);
   return {
     parse: (imageId: string) => parseSchemaImageName(resolved, imageId),
@@ -346,13 +338,12 @@ export function isSchemaShieldId(
  *
  * @example
  * ```ts
- * createShieldRenderer("shields.json").renderOnMaplibreGL(map);
- * // or explicitly: createShieldRenderer("shields.json", "openmaptiles")
+ * createShieldRenderer("shields.json", "openmaptiles").renderOnMaplibreGL(map);
  * ```
  */
 export function createShieldRenderer(
   sprites: string | URL | ShieldSpecification,
-  schema: ShieldSchemaRef = DEFAULT_SHIELD_SCHEMA_ID
+  schema: ShieldSchemaRef
 ): AbstractShieldRenderer {
   const resolved = resolveSchema(schema);
   const parser = routeParserFromSchema(resolved);
@@ -374,11 +365,11 @@ export function createShieldRenderer(
  *
  * Artwork stays in `options.sprites`. A different color scheme or drawing
  * style is a different sprite specification used with the same schema.
- * `options.schema` defaults to `"openmaptiles"`.
  *
  * @example
  * ```ts
  * addShieldLayer(map, {
+ *   schema: "openmaptiles",
  *   sprites: "shields.json",
  *   source: "openmaptiles",
  * });

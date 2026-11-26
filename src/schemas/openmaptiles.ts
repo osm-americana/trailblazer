@@ -6,13 +6,13 @@ import { registerBuiltinSchema } from "../shield_schema";
  *
  * Expects `route_#_network`, `route_#_ref`, `route_#_name`, and
  * `route_#_color` on each feature (see the README Schema section). Prefer
- * referring to it by id (`"openmaptiles"`) or omitting `schema` so helpers
- * default to it. Override `source` when the style's OpenMapTiles source has
- * another id.
+ * referring to it by id (`"openmaptiles"`). Override `source` when the
+ * style's OpenMapTiles source has another id.
  *
  * @example
  * ```ts
  * addShieldLayer(map, {
+ *   schema: "openmaptiles",
  *   sprites: "shields.json",
  * });
  * ```

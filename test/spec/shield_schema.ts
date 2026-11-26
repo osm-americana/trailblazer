@@ -4,7 +4,6 @@ import { expect } from "chai";
 import type { Map as MapLibre } from "maplibre-gl";
 import { HeadlessGraphicsFactory } from "../../src/headless_graphics";
 import {
-  DEFAULT_SHIELD_SCHEMA_ID,
   InMemorySpriteRepository,
   OPENMAPTILES,
   addShieldLayer,
@@ -102,8 +101,6 @@ describe("shield schema", function () {
   describe("resolveSchema", function () {
     it("resolves the openmaptiles id to the built-in object", function () {
       expect(resolveSchema("openmaptiles")).to.equal(OPENMAPTILES);
-      expect(resolveSchema()).to.equal(OPENMAPTILES);
-      expect(DEFAULT_SHIELD_SCHEMA_ID).to.equal("openmaptiles");
     });
 
     it("returns a custom schema object after validating it", function () {
@@ -187,7 +184,7 @@ describe("shield schema", function () {
         "source-layer": "transportation_name",
         layout: {
           "text-rotation-alignment": "viewport-glyph",
-          "text-field": getShieldExpression(),
+          "text-field": getShieldExpression("openmaptiles"),
           "text-anchor": "center",
           "text-letter-spacing": 0.7,
           "symbol-placement": "line",
@@ -261,11 +258,13 @@ describe("shield schema", function () {
       expect(layer.id).to.equal("route-shields");
       expect(layer.layout["text-font"]).to.equal(undefined);
       expect(layer.layout["text-letter-spacing"]).to.equal(0.2);
-      expect(layer.layout["text-field"]).to.eql(getShieldExpression());
+      expect(layer.layout["text-field"]).to.eql(
+        getShieldExpression("openmaptiles")
+      );
     });
 
     it("leaves text-font unset for the MapLibre style-spec default", function () {
-      const layer = getShieldLayer();
+      const layer = getShieldLayer("openmaptiles");
       expect(layer.layout["text-font"]).to.equal(undefined);
     });
 
@@ -494,7 +493,7 @@ describe("shield schema", function () {
   describe("createShieldRenderer", function () {
     it("draws an OpenMapTiles id and ignores other missing images", function () {
       const repo = new InMemorySpriteRepository();
-      const renderer = createShieldRenderer(interstateSpec)
+      const renderer = createShieldRenderer(interstateSpec, "openmaptiles")
         .graphicsFactory(new HeadlessGraphicsFactory())
         .renderOnRepository(repo);
       const resolver = renderer.getMissingStyleImageResolver();
@@ -584,6 +583,7 @@ describe("shield schema", function () {
     it("installs the handler before adding the OpenMapTiles layer", function () {
       const { map, calls } = fakeMap();
       addShieldLayer(map, {
+        schema: "openmaptiles",
         sprites: interstateSpec,
         source: "omf",
         beforeId: "road-label",
@@ -627,6 +627,7 @@ describe("shield schema", function () {
 
       try {
         addShieldLayer(map, {
+          schema: "openmaptiles",
           sprites: "https://example.test/shields.json",
         });
         await new Promise((resolve) => setTimeout(resolve, 0));
