@@ -1,6 +1,6 @@
-import * as ShieldDraw from "./shield_canvas_draw";
-import { ShieldRenderingContext } from "./shield_renderer";
-import type { ShapeBlankParams } from "./types";
+import * as ShieldDraw from "./shield_canvas_draw.js";
+import { ShieldRenderingContext } from "./shield_renderer.js";
+import type { ShapeBlankParams } from "./types.js";
 
 // Special case for Allegheny, PA Belt System
 export function paBelt(

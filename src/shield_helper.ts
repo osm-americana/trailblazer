@@ -1,4 +1,4 @@
-import type { ShieldDefinition, TextLayout } from "./types";
+import type { ShieldDefinition, TextLayout } from "./types.js";
 
 /**
  * Constrain the text to a rounded rectangle

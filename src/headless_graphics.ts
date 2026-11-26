@@ -1,4 +1,4 @@
-import type { Bounds, GraphicsFactory } from "./types";
+import type { Bounds, GraphicsFactory } from "./types.js";
 import { createCanvas } from "canvas";
 
 /**

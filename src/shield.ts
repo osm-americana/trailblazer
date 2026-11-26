@@ -1,15 +1,19 @@
-import * as ShieldText from "./shield_text";
-import * as ShieldDraw from "./shield_canvas_draw";
-import * as Gfx from "./screen_gfx";
-import { drawBanners, drawBannerHalos, getBannerCount } from "./shield_banner";
-import { ShieldRenderingContext } from "./shield_renderer";
+import * as ShieldText from "./shield_text.js";
+import * as ShieldDraw from "./shield_canvas_draw.js";
+import * as Gfx from "./screen_gfx.js";
+import {
+  drawBanners,
+  drawBannerHalos,
+  getBannerCount,
+} from "./shield_banner.js";
+import { ShieldRenderingContext } from "./shield_renderer.js";
 import type {
   Dimension,
   RouteDefinition,
   ShieldDefinition,
   ShieldDefinitions,
-} from "./types";
-import type { TextPlacement } from "./shield_text";
+} from "./types.js";
+import type { TextPlacement } from "./shield_text.js";
 import type { StyleImage } from "maplibre-gl";
 
 const narrowCharacters = /[1IJijl .-]/g;

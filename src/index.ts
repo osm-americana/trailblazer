@@ -1,13 +1,13 @@
-export * from "./types";
+export * from "./types.js";
 
-export { transposeImageData } from "./screen_gfx";
+export { transposeImageData } from "./screen_gfx.js";
 
 export {
   URLShieldRenderer,
   ShieldRenderer,
   InMemorySpriteRepository,
   AbstractShieldRenderer,
-} from "./shield_renderer";
+} from "./shield_renderer.js";
 
-export { getDOMPixelRatio } from "./document_graphics";
-export * from "./shield_helper";
+export { getDOMPixelRatio } from "./document_graphics.js";
+export * from "./shield_helper.js";
