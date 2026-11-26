@@ -17,14 +17,62 @@ import {
 } from "./shield_renderer";
 
 /**
+ * Id of a built-in schema registered with {@link registerBuiltinSchema}.
+ * Pass this string to the schema helpers instead of importing the schema object.
+ */
+export type BuiltinSchemaId = "openmaptiles";
+
+/**
+ * A built-in schema id, or a full {@link ShieldSchema} for a custom tileset.
+ * Built-in helpers default to `"openmaptiles"` when omitted.
+ */
+export type ShieldSchemaRef = ShieldSchema | BuiltinSchemaId;
+
+/** Default schema id used when callers omit `schema`. */
+export const DEFAULT_SHIELD_SCHEMA_ID: BuiltinSchemaId = "openmaptiles";
+
+const builtinSchemas = new Map<string, ShieldSchema>();
+
+/**
+ * Register a built-in schema so callers can refer to it by {@link ShieldSchema.id}.
+ * Built-in modules call this at load time; package consumers normally do not.
+ */
+export function registerBuiltinSchema(schema: ShieldSchema): void {
+  assertShieldSchema(schema);
+  builtinSchemas.set(schema.id, schema);
+}
+
+/**
+ * Resolve a schema id or object to a {@link ShieldSchema}.
+ * Strings look up built-ins; objects are validated and returned.
+ * Omitting `schema` (or passing `undefined`) uses {@link DEFAULT_SHIELD_SCHEMA_ID}.
+ */
+export function resolveSchema(
+  schema: ShieldSchemaRef = DEFAULT_SHIELD_SCHEMA_ID
+): ShieldSchema {
+  if (typeof schema === "string") {
+    const resolved = builtinSchemas.get(schema);
+    if (!resolved) {
+      const known = [...builtinSchemas.keys()].sort().join(", ");
+      throw new Error(
+        `Unknown shield schema "${schema}"` +
+          (known ? `; known ids: ${known}` : "")
+      );
+    }
+    return resolved;
+  }
+  assertShieldSchema(schema);
+  return schema;
+}
+
+/**
  * How a vector-tile schema stores route attributes, and how those attributes
  * become missing-image ids.
  *
- * Pass a schema to {@link getShieldExpression}, {@link getShieldLayer},
- * {@link createShieldRenderer}, or {@link addShieldLayer}.
- * {@link OPENMAPTILES} is the built-in schema. Another tile source is a
- * different object with this same shape. {@link OPENMAPTILES} is an ordinary
- * value of this type: the functions read every default from the object you pass.
+ * Pass a schema id or object to {@link getShieldExpression}, {@link getShieldLayer},
+ * {@link createShieldRenderer}, or {@link addShieldLayer}. The built-in
+ * OpenMapTiles schema is `"openmaptiles"` and is the default when omitted.
+ * Another tile source is a different object with this same shape.
  *
  * The schema describes tiles and the symbol layer that reads them. Shield
  * graphics, padding, and network definitions stay in the shield specification
@@ -37,7 +85,8 @@ import {
  */
 export interface ShieldSchema {
   /**
-   * Name used in error messages. {@link OPENMAPTILES} uses `"openmaptiles"`.
+   * Name used in error messages and as the built-in lookup id.
+   * The OpenMapTiles schema uses `"openmaptiles"`.
    */
   id: string;
 
@@ -113,7 +162,7 @@ export interface ShieldSchema {
    * every class, including classes that are not listed. An empty list, paired
    * with an empty `roadClassOrder`, draws every feature at every zoom.
    *
-   * {@link OPENMAPTILES} uses `[8, 10, 11, 12, 14]` for motorway, trunk,
+   * The OpenMapTiles schema uses `[8, 10, 11, 12, 14]` for motorway, trunk,
    * primary, secondary, and tertiary.
    */
   opacityZooms: readonly number[];
@@ -192,8 +241,11 @@ export interface ShieldLayerOverrides {
  * `schema` selects the tile encoding. `sprites` selects the artwork.
  */
 export interface AddShieldLayerOptions extends ShieldLayerOverrides {
-  /** Tile schema. Pass {@link OPENMAPTILES} for OpenMapTiles. */
-  schema: ShieldSchema;
+  /**
+   * Tile schema id or object. Defaults to `"openmaptiles"`.
+   * Pass a custom {@link ShieldSchema} when the tileset differs.
+   */
+  schema?: ShieldSchemaRef;
   /**
    * Shield artwork and network definitions.
    * A string or {@link URL} is fetched. A {@link ShieldSpecification} is used
@@ -224,12 +276,16 @@ export interface AddShieldLayerOptions extends ShieldLayerOverrides {
  * {@link addShieldLayer} instead of assembling the rest of the layer yourself.
  */
 export function getShieldExpression(
-  schema: ShieldSchema
+  schema: ShieldSchemaRef = DEFAULT_SHIELD_SCHEMA_ID
 ): ExpressionSpecification {
-  assertShieldSchema(schema);
+  const resolved = resolveSchema(schema);
   const expression: unknown[] = ["format"];
-  for (let routeIndex = 1; routeIndex <= schema.maxConcurrency; routeIndex++) {
-    expression.push(routeImageExpression(schema, routeIndex));
+  for (
+    let routeIndex = 1;
+    routeIndex <= resolved.maxConcurrency;
+    routeIndex++
+  ) {
+    expression.push(routeImageExpression(resolved, routeIndex));
   }
   return expression as ExpressionSpecification;
 }
@@ -238,37 +294,37 @@ export function getShieldExpression(
  * Symbol layer for `schema`, including the image expression, the road-class
  * sort key, and the zoom opacity ramp.
  *
- * For {@link OPENMAPTILES}, this is the standard OpenMapTiles highway-shield
+ * For `"openmaptiles"`, this is the standard OpenMapTiles highway-shield
  * layer, aside from `text-font`. Pass `textFont` to match your style's glyph
  * stack. Spread the result into a style document. If the map already exists
  * and the style has no shield layer, {@link addShieldLayer} adds this layer
  * and installs the missing-image handler.
  */
 export function getShieldLayer(
-  schema: ShieldSchema,
+  schema: ShieldSchemaRef = DEFAULT_SHIELD_SCHEMA_ID,
   overrides: ShieldLayerOverrides = {}
 ): SymbolLayerSpecification {
-  assertShieldSchema(schema);
+  const resolved = resolveSchema(schema);
   return {
-    id: overrides.layerId ?? schema.layerId,
+    id: overrides.layerId ?? resolved.layerId,
     type: "symbol",
-    source: overrides.source ?? schema.source,
-    "source-layer": overrides.sourceLayer ?? schema.sourceLayer,
+    source: overrides.source ?? resolved.source,
+    "source-layer": overrides.sourceLayer ?? resolved.sourceLayer,
     layout: {
       "text-rotation-alignment": "viewport-glyph",
       "text-font": [...(overrides.textFont ?? DEFAULT_SHIELD_TEXT_FONT)],
-      "text-field": getShieldExpression(schema),
+      "text-field": getShieldExpression(resolved),
       "text-anchor": "center",
       "text-letter-spacing": overrides.letterSpacing ?? 0.7,
       "symbol-placement": "line",
       "text-max-angle": 180,
       "text-pitch-alignment": "viewport",
-      "symbol-sort-key": symbolSortKey(schema),
+      "symbol-sort-key": symbolSortKey(resolved),
     },
     paint: {
-      "text-opacity": textOpacity(schema),
+      "text-opacity": textOpacity(resolved),
     },
-    filter: routeFilter(schema),
+    filter: routeFilter(resolved),
   };
 }
 
@@ -279,12 +335,14 @@ export function getShieldLayer(
  * installing the handler yourself. Pair it with {@link isSchemaShieldId} so
  * unrelated missing images remain available to other resolvers.
  */
-export function routeParserFromSchema(schema: ShieldSchema): RouteParser {
-  assertShieldSchema(schema);
+export function routeParserFromSchema(
+  schema: ShieldSchemaRef = DEFAULT_SHIELD_SCHEMA_ID
+): RouteParser {
+  const resolved = resolveSchema(schema);
   return {
-    parse: (imageId: string) => parseSchemaImageName(schema, imageId),
+    parse: (imageId: string) => parseSchemaImageName(resolved, imageId),
     format: (network: string, ref: string, name: string) =>
-      formatSchemaImageName(schema, network, ref, name),
+      formatSchemaImageName(resolved, network, ref, name),
   };
 }
 
@@ -293,13 +351,16 @@ export function routeParserFromSchema(schema: ShieldSchema): RouteParser {
  * This is the image-id filter {@link createShieldRenderer} installs.
  */
 export function isSchemaShieldId(
-  schema: ShieldSchema,
+  schema: ShieldSchemaRef,
   imageId: string
 ): boolean {
-  if (schema.acceptsImageId) {
-    return schema.acceptsImageId(imageId);
+  const resolved = resolveSchema(schema);
+  if (resolved.acceptsImageId) {
+    return resolved.acceptsImageId(imageId);
   }
-  return imageId.startsWith(schema.imagePrefix + schema.attributeSeparator);
+  return imageId.startsWith(
+    resolved.imagePrefix + resolved.attributeSeparator
+  );
 }
 
 /**
@@ -312,18 +373,22 @@ export function isSchemaShieldId(
  *
  * @example
  * ```ts
- * createShieldRenderer("shields.json", OPENMAPTILES).renderOnMaplibreGL(map);
+ * createShieldRenderer("shields.json").renderOnMaplibreGL(map);
+ * // or explicitly: createShieldRenderer("shields.json", "openmaptiles")
  * ```
  */
 export function createShieldRenderer(
   sprites: string | URL | ShieldSpecification,
-  schema: ShieldSchema
+  schema: ShieldSchemaRef = DEFAULT_SHIELD_SCHEMA_ID
 ): AbstractShieldRenderer {
-  const parser = routeParserFromSchema(schema);
+  const resolved = resolveSchema(schema);
+  const parser = routeParserFromSchema(resolved);
   const renderer = isShieldSpecification(sprites)
     ? new ShieldRenderer(sprites, parser)
     : new URLShieldRenderer(sprites, parser);
-  return renderer.filterImageID((imageId) => isSchemaShieldId(schema, imageId));
+  return renderer.filterImageID((imageId) =>
+    isSchemaShieldId(resolved, imageId)
+  );
 }
 
 /**
@@ -336,11 +401,11 @@ export function createShieldRenderer(
  *
  * Artwork stays in `options.sprites`. A different color scheme or drawing
  * style is a different sprite specification used with the same schema.
+ * `options.schema` defaults to `"openmaptiles"`.
  *
  * @example
  * ```ts
  * addShieldLayer(map, {
- *   schema: OPENMAPTILES,
  *   sprites: "shields.json",
  *   source: "openmaptiles",
  *   textFont: ["Noto Sans Regular"],
@@ -351,18 +416,19 @@ export function addShieldLayer(
   map: MapLibre,
   options: AddShieldLayerOptions
 ): AbstractShieldRenderer {
-  const renderer = createShieldRenderer(options.sprites, options.schema);
+  const schema = resolveSchema(options.schema);
+  const renderer = createShieldRenderer(options.sprites, schema);
   if (options.filterImageID) {
     const extra = options.filterImageID;
     renderer.filterImageID(
-      (imageId) => isSchemaShieldId(options.schema, imageId) && extra(imageId)
+      (imageId) => isSchemaShieldId(schema, imageId) && extra(imageId)
     );
   }
   if (options.filterNetwork) {
     renderer.filterNetwork(options.filterNetwork);
   }
   renderer.renderOnMaplibreGL(map);
-  map.addLayer(getShieldLayer(options.schema, options), options.beforeId);
+  map.addLayer(getShieldLayer(schema, options), options.beforeId);
   return renderer;
 }
 

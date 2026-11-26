@@ -10,7 +10,7 @@ The name comes from highway [trailblazer assemblies](https://mutcd.fhwa.dot.gov/
 
 Trailblazer is compatible with applications using MapLibre GL&nbsp;JS v6.0.0 and above.
 
-Trailblazer is not tied to a particular tileset. It ships a built-in configuration for the [OpenMapTiles schema](#schema); pass your own schema object when your tiles use different property names.
+Trailblazer is not tied to a particular tileset. It defaults to the [OpenMapTiles schema](#schema); pass your own schema object when your tiles use different property names.
 
 ## Installation
 
@@ -32,20 +32,19 @@ import { HeadlessGraphicsFactory } from "@americana/trailblazer/headless";
 
 Shield drawing has two independent pieces:
 
-- A **schema** describes how route attributes are stored in the vector tiles. [`OPENMAPTILES`](src/schemas/openmaptiles.ts) is the built-in configuration for that layout. Use a different object of the same shape for another tileset.
+- A **schema** describes how route attributes are stored in the vector tiles. The built-in OpenMapTiles layout is `"openmaptiles"` (the default). Pass that string, omit `schema`, or supply a different object of the same shape for another tileset.
 - A **sprite specification** describes the artwork: which graphic, padding, and text treatment to draw for each network. Styles that want Americana's shields can point at [the premade specification](https://americanamap.org/shields.json). A different color scheme is a different sprite specification, used with the same schema.
 
 Shield graphics are images, but MapLibre still needs `text-font` to place them. Pass the fonts your style actually loads. Americana uses `["Americana-Regular"]`.
 
 ### Add shields to a map
 
-`addShieldLayer` installs a missing-image handler and adds the shield layer. The handler is installed first, so the layer's first render can resolve images.
+`addShieldLayer` installs a missing-image handler and adds the shield layer. The handler is installed first, so the layer's first render can resolve images. Omit `schema` (or pass `"openmaptiles"`) for OpenMapTiles tiles.
 
 ```typescript
-import { OPENMAPTILES, addShieldLayer } from "@americana/trailblazer";
+import { addShieldLayer } from "@americana/trailblazer";
 
 addShieldLayer(map, {
-  schema: OPENMAPTILES,
   sprites: "https://americanamap.org/shields.json",
   textFont: ["Americana-Regular"],
 });
@@ -55,7 +54,7 @@ Override the source id when the style names its OpenMapTiles source something el
 
 ```typescript
 addShieldLayer(map, {
-  schema: OPENMAPTILES,
+  schema: "openmaptiles",
   sprites: "https://americanamap.org/shields.json",
   source: "omf",
   textFont: ["Americana-Regular"],
@@ -67,7 +66,6 @@ addShieldLayer(map, {
 
 ```typescript
 const renderer = addShieldLayer(map, {
-  schema: OPENMAPTILES,
   sprites: shields,
   textFont: ["Americana-Regular"],
   // Skip recreational route networks (nwn, lwn, rcn, and so on).
@@ -87,30 +85,26 @@ Americana builds the layer into the style document, then installs the handler on
 
 ```typescript
 import {
-  OPENMAPTILES,
   createShieldRenderer,
   getShieldExpression,
   getShieldLayer,
 } from "@americana/trailblazer";
 
 // While assembling the style:
-style.layers.push(
-  getShieldLayer(OPENMAPTILES, { textFont: ["Americana-Regular"] })
-);
+style.layers.push(getShieldLayer("openmaptiles", { textFont: ["Americana-Regular"] }));
 
 // Or, inside a layer that already exists:
-layout["text-field"] = getShieldExpression(OPENMAPTILES);
+layout["text-field"] = getShieldExpression();
 
 // Once the map exists:
-createShieldRenderer(
-  "https://americanamap.org/shields.json",
-  OPENMAPTILES
-).renderOnMaplibreGL(map);
+createShieldRenderer("https://americanamap.org/shields.json").renderOnMaplibreGL(
+  map
+);
 ```
 
 ### Another tile schema
 
-Define an object with the same fields as [`OPENMAPTILES`](src/schemas/openmaptiles.ts) and pass it wherever that constant is passed. Property names and concurrency come from that object.
+Define an object with the same fields as the [OpenMapTiles built-in](src/schemas/openmaptiles.ts) and pass it wherever a schema id is accepted. Property names and concurrency come from that object.
 
 ```typescript
 import { addShieldLayer, type ShieldSchema } from "@americana/trailblazer";
@@ -141,7 +135,7 @@ That schema reads `network_1`, `ref_1`, and `name_1`. `opacityZooms` must be the
 
 ## Schema
 
-Trailblazer does not require a particular tileset. The built-in [`OPENMAPTILES`](src/schemas/openmaptiles.ts) configuration is for sources that expose concurrent routes the way [OpenMapTiles](https://openmaptiles.org/schema/#transportation_name) does on the `transportation_name` layer. For each concurrent route index `#` (1-based):
+Trailblazer does not require a particular tileset. Its default schema (`"openmaptiles"`) is for sources that expose concurrent routes the way [OpenMapTiles](https://openmaptiles.org/schema/#transportation_name) does on the `transportation_name` layer. For each concurrent route index `#` (1-based):
 
 - **`route_#_network`** (`string`): The route network, corresponding in concept to the OpenStreetMap [`network`](https://wiki.openstreetmap.org/wiki/Key:network) tag. For example, `US:I`.
 - **`route_#_ref`** (`string`): The route number or other text drawn on the shield, corresponding in concept to the OpenStreetMap [`ref`](https://wiki.openstreetmap.org/wiki/Key:ref) tag.
@@ -150,7 +144,7 @@ Trailblazer does not require a particular tileset. The built-in [`OPENMAPTILES`]
 
 Features may also carry a **`class`** property (for example `motorway`, `trunk`, `primary`) used for sorting and fade-in by road importance.
 
-If your tileset uses different property names or layers, pass a custom schema object instead of `OPENMAPTILES`.
+If your tileset uses different property names or layers, pass a custom schema object instead of `"openmaptiles"`.
 
 ## Manual setup
 
@@ -160,7 +154,7 @@ Rendering shields requires the following compoments:
 
 1. **Encode shield information in vector tiles**. First, your tiles must contain the information which tells the shield renderer what shields to draw. See [Schema](#schema) for the OpenMapTiles property layout. You can also supply a custom schema object when the tiles use different property names.
 
-2. **Expose shield information in a style layer**. Next, route information must be exposed in a MapLibre expression using [image](https://maplibre.org/maplibre-gl-js-docs/style-spec/expressions/#types-image) so MapLibre asks the map's [missing style image resolver](https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#setmissingstyleimageresolver) for each shield. For the built-in schema, use `getShieldLayer(OPENMAPTILES)` or `getShieldExpression(OPENMAPTILES)` instead of assembling that layer by hand. OSM Americana's [`highway_shield`](https://github.com/osm-americana/openstreetmap-americana/blob/main/src/layer/highway_shield.js) layer is an example of the hand-written form.
+2. **Expose shield information in a style layer**. Next, route information must be exposed in a MapLibre expression using [image](https://maplibre.org/maplibre-gl-js-docs/style-spec/expressions/#types-image) so MapLibre asks the map's [missing style image resolver](https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#setmissingstyleimageresolver) for each shield. For the built-in schema, use `getShieldLayer()` or `getShieldExpression()` instead of assembling that layer by hand. OSM Americana's [`highway_shield`](https://github.com/osm-americana/openstreetmap-americana/blob/main/src/layer/highway_shield.js) layer is an example of the hand-written form.
 
 3. **Define a parser that describes how route information is encoded**. There are three parts to a route definition:
 

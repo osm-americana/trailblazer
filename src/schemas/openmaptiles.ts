@@ -1,18 +1,18 @@
 import type { ShieldSchema } from "../shield_schema";
-import { assertShieldSchema } from "../shield_schema";
+import { registerBuiltinSchema } from "../shield_schema";
 
 /**
  * Built-in schema for OpenMapTiles-style `transportation_name` routes.
  *
  * Expects `route_#_network`, `route_#_ref`, `route_#_name`, and
- * `route_#_color` on each feature (see the README Schema section). Pass this
- * constant to the schema helpers. Override `source` when the style's
- * OpenMapTiles source has another id. Pass `textFont` separately.
+ * `route_#_color` on each feature (see the README Schema section). Prefer
+ * referring to it by id (`"openmaptiles"`) or omitting `schema` so helpers
+ * default to it. Override `source` when the style's OpenMapTiles source has
+ * another id. Pass `textFont` separately.
  *
  * @example
  * ```ts
  * addShieldLayer(map, {
- *   schema: OPENMAPTILES,
  *   sprites: "shields.json",
  *   textFont: ["Noto Sans Regular"],
  * });
@@ -40,4 +40,4 @@ export const OPENMAPTILES: ShieldSchema = Object.freeze({
   opacityZooms: Object.freeze([8, 10, 11, 12, 14]),
 });
 
-assertShieldSchema(OPENMAPTILES);
+registerBuiltinSchema(OPENMAPTILES);

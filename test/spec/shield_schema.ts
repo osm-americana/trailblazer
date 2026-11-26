@@ -4,6 +4,7 @@ import { expect } from "chai";
 import type { Map as MapLibre } from "maplibre-gl";
 import { HeadlessGraphicsFactory } from "../../src/headless_graphics";
 import {
+  DEFAULT_SHIELD_SCHEMA_ID,
   DEFAULT_SHIELD_TEXT_FONT,
   InMemorySpriteRepository,
   OPENMAPTILES,
@@ -12,6 +13,7 @@ import {
   getShieldExpression,
   getShieldLayer,
   isSchemaShieldId,
+  resolveSchema,
   routeParserFromSchema,
 } from "../../src/index";
 import type { ShieldSchema, ShieldSpecification } from "../../src/index";
@@ -102,9 +104,28 @@ describe("shield schema", function () {
     });
   });
 
+  describe("resolveSchema", function () {
+    it("resolves the openmaptiles id to the built-in object", function () {
+      expect(resolveSchema("openmaptiles")).to.equal(OPENMAPTILES);
+      expect(resolveSchema()).to.equal(OPENMAPTILES);
+      expect(DEFAULT_SHIELD_SCHEMA_ID).to.equal("openmaptiles");
+    });
+
+    it("returns a custom schema object after validating it", function () {
+      const schema = simpleSchema();
+      expect(resolveSchema(schema)).to.equal(schema);
+    });
+
+    it("rejects an unknown schema id", function () {
+      expect(() => resolveSchema("nope" as "openmaptiles")).to.throw(
+        /Unknown shield schema "nope"/
+      );
+    });
+  });
+
   describe("getShieldExpression", function () {
     it("builds one image per OpenMapTiles route slot", function () {
-      const expression = getShieldExpression(OPENMAPTILES);
+      const expression = getShieldExpression("openmaptiles");
       const attributes = ["network", "ref", "name", "color"];
 
       expect(expression[0]).to.equal("format");
@@ -162,7 +183,7 @@ describe("shield schema", function () {
 
   describe("getShieldLayer", function () {
     it("builds the OpenMapTiles highway shield layer", function () {
-      const layer = getShieldLayer(OPENMAPTILES, {
+      const layer = getShieldLayer("openmaptiles", {
         textFont: ["Noto Sans Regular"],
       });
 
@@ -174,7 +195,7 @@ describe("shield schema", function () {
         layout: {
           "text-rotation-alignment": "viewport-glyph",
           "text-font": ["Noto Sans Regular"],
-          "text-field": getShieldExpression(OPENMAPTILES),
+          "text-field": getShieldExpression(),
           "text-anchor": "center",
           "text-letter-spacing": 0.7,
           "symbol-placement": "line",
@@ -236,7 +257,7 @@ describe("shield schema", function () {
     });
 
     it("lets the style replace source, layer id, font, and letter spacing", function () {
-      const layer = getShieldLayer(OPENMAPTILES, {
+      const layer = getShieldLayer("openmaptiles", {
         source: "omf",
         sourceLayer: "transportation_name",
         layerId: "route-shields",
@@ -249,13 +270,11 @@ describe("shield schema", function () {
       expect(layer.id).to.equal("route-shields");
       expect(layer.layout["text-font"]).to.eql(["Noto Sans Regular"]);
       expect(layer.layout["text-letter-spacing"]).to.equal(0.2);
-      expect(layer.layout["text-field"]).to.eql(
-        getShieldExpression(OPENMAPTILES)
-      );
+      expect(layer.layout["text-field"]).to.eql(getShieldExpression());
     });
 
     it("defaults the font to the MapLibre symbol-layer stack", function () {
-      const layer = getShieldLayer(OPENMAPTILES);
+      const layer = getShieldLayer();
       expect(layer.layout["text-font"]).to.eql(DEFAULT_SHIELD_TEXT_FONT);
       expect(DEFAULT_SHIELD_TEXT_FONT).to.eql([
         "Open Sans Regular",
@@ -314,7 +333,7 @@ describe("shield schema", function () {
   });
 
   describe("route parser", function () {
-    const parser = routeParserFromSchema(OPENMAPTILES);
+    const parser = routeParserFromSchema("openmaptiles");
 
     it("parses an OpenMapTiles image id", function () {
       expect(parser.parse("shield\nUS:I\n95\n\n")).to.eql({
@@ -356,11 +375,11 @@ describe("shield schema", function () {
     });
 
     it("accepts only ids with this schema's prefix and separator", function () {
-      expect(isSchemaShieldId(OPENMAPTILES, "shield\nUS:I\n95\n\n")).to.equal(
+      expect(isSchemaShieldId("openmaptiles", "shield\nUS:I\n95\n\n")).to.equal(
         true
       );
-      expect(isSchemaShieldId(OPENMAPTILES, "shield")).to.equal(false);
-      expect(isSchemaShieldId(OPENMAPTILES, "shield|US:I=95")).to.equal(false);
+      expect(isSchemaShieldId("openmaptiles", "shield")).to.equal(false);
+      expect(isSchemaShieldId("openmaptiles", "shield|US:I=95")).to.equal(false);
       expect(isSchemaShieldId(simpleSchema(), "shield|US:I|95|")).to.equal(
         true
       );
@@ -486,7 +505,7 @@ describe("shield schema", function () {
   describe("createShieldRenderer", function () {
     it("draws an OpenMapTiles id and ignores other missing images", function () {
       const repo = new InMemorySpriteRepository();
-      const renderer = createShieldRenderer(interstateSpec, OPENMAPTILES)
+      const renderer = createShieldRenderer(interstateSpec)
         .graphicsFactory(new HeadlessGraphicsFactory())
         .renderOnRepository(repo);
       const resolver = renderer.getMissingStyleImageResolver();
@@ -503,7 +522,7 @@ describe("shield schema", function () {
     it("stores an empty sprite when the network filter declines the route", function () {
       const repo = new InMemorySpriteRepository();
       const imageId = "shield\nUS:I\n95\n\n";
-      createShieldRenderer(interstateSpec, OPENMAPTILES)
+      createShieldRenderer(interstateSpec, "openmaptiles")
         .filterNetwork((network) => network !== "US:I")
         .graphicsFactory(new HeadlessGraphicsFactory())
         .renderOnRepository(repo)
@@ -576,7 +595,6 @@ describe("shield schema", function () {
     it("installs the handler before adding the OpenMapTiles layer", function () {
       const { map, calls } = fakeMap();
       addShieldLayer(map, {
-        schema: OPENMAPTILES,
         sprites: interstateSpec,
         textFont: ["Noto Sans Regular"],
         source: "omf",
@@ -586,7 +604,7 @@ describe("shield schema", function () {
       expect(calls.order).to.eql(["resolver", "addLayer"]);
       expect(calls.beforeId).to.equal("road-label");
       expect(calls.layer).to.eql(
-        getShieldLayer(OPENMAPTILES, {
+        getShieldLayer("openmaptiles", {
           textFont: ["Noto Sans Regular"],
           source: "omf",
         })
@@ -600,7 +618,7 @@ describe("shield schema", function () {
     it("does not claim an id the extra image filter rejects", function () {
       const { map, calls } = fakeMap();
       addShieldLayer(map, {
-        schema: OPENMAPTILES,
+        schema: "openmaptiles",
         sprites: interstateSpec,
         filterImageID: () => false,
       });
@@ -622,7 +640,6 @@ describe("shield schema", function () {
 
       try {
         addShieldLayer(map, {
-          schema: OPENMAPTILES,
           sprites: "https://example.test/shields.json",
         });
         await new Promise((resolve) => setTimeout(resolve, 0));
