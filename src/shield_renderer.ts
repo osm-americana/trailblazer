@@ -17,13 +17,13 @@ import type {
   ShieldSpecification,
   SpriteRepository,
   StringPredicate,
-} from "./types";
+} from "./types.js";
 import {
   storeNoShield,
   missingIconLoader,
   generateShieldCtx,
 } from "./shield.js";
-import { DOMGraphicsFactory } from "./document_graphics";
+import { DOMGraphicsFactory } from "./document_graphics.js";
 
 export class ShieldRenderingContext {
   shieldDef: ShieldDefinitions;

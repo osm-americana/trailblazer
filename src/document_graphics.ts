@@ -1,4 +1,4 @@
-import type { Bounds, GraphicsFactory } from "./types";
+import type { Bounds, GraphicsFactory } from "./types.js";
 
 /**
  * Get the Maplibre pixel reation being used in this browser. This determines

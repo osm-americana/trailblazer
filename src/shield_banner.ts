@@ -1,7 +1,7 @@
-import { shieldFont } from "./screen_gfx";
-import { ShieldRenderingContext } from "./shield_renderer";
-import { type TextPlacement, layoutShieldText } from "./shield_text";
-import type { Dimension, ShieldDefinition, TextLayout } from "./types";
+import { shieldFont } from "./screen_gfx.js";
+import { ShieldRenderingContext } from "./shield_renderer.js";
+import { type TextPlacement, layoutShieldText } from "./shield_text.js";
+import type { Dimension, ShieldDefinition, TextLayout } from "./types.js";
 
 let bannerLayout: TextLayout = {
   constraintFunc: "rect",
