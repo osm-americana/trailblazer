@@ -1,0 +1,663 @@
+import type {
+  ExpressionSpecification,
+  FilterSpecification,
+  Map as MapLibre,
+  SymbolLayerSpecification,
+} from "maplibre-gl";
+import type {
+  DebugOptions,
+  RouteDefinition,
+  RouteParser,
+  ShieldSpecification,
+  StringPredicate,
+} from "./types";
+import {
+  AbstractShieldRenderer,
+  ShieldRenderer,
+  URLShieldRenderer,
+} from "./shield_renderer";
+
+/**
+ * Id of a built-in schema registered with {@link registerBuiltinSchema}.
+ * Pass this string to the schema helpers instead of importing the schema object.
+ */
+export type BuiltinSchemaId = "openmaptiles";
+
+/**
+ * A built-in schema id, or a full {@link ShieldSchema} for a custom tileset.
+ * Callers must pass a schema to every helper; there is no default.
+ */
+export type ShieldSchemaRef = ShieldSchema | BuiltinSchemaId;
+
+const builtinSchemas = new Map<string, ShieldSchema>();
+
+/**
+ * Register a built-in schema so callers can refer to it by {@link ShieldSchema.id}.
+ * Built-in modules call this at load time; package consumers normally do not.
+ */
+export function registerBuiltinSchema(schema: ShieldSchema): void {
+  assertShieldSchema(schema);
+  builtinSchemas.set(schema.id, schema);
+}
+
+/**
+ * Resolve a schema id or object to a {@link ShieldSchema}.
+ * Strings look up built-ins; objects are validated and returned.
+ */
+export function resolveSchema(schema: ShieldSchemaRef): ShieldSchema {
+  if (typeof schema === "string") {
+    const resolved = builtinSchemas.get(schema);
+    if (!resolved) {
+      const known = [...builtinSchemas.keys()].sort().join(", ");
+      throw new Error(
+        `Unknown shield schema "${schema}"` +
+          (known ? `; known ids: ${known}` : "")
+      );
+    }
+    return resolved;
+  }
+  assertShieldSchema(schema);
+  return schema;
+}
+
+/**
+ * How a vector-tile schema stores route attributes for shield drawing.
+ *
+ * Pass a schema id or object to {@link getShieldExpression}, {@link getShieldLayer},
+ * {@link createShieldRenderer}, or {@link addShieldLayer}. The built-in
+ * OpenMapTiles schema is `"openmaptiles"`. Another tile source is a different
+ * object with this same shape.
+ *
+ * The schema describes tiles and the symbol layer that reads them. Missing-image
+ * id spelling is an internal detail of this plugin: the expression and parser
+ * share one encoding so the missing-image handler can undo what the layer
+ * requested. Shield graphics, padding, and network definitions stay in the
+ * shield specification you pass separately (for example your own
+ * `shields.json`). The symbol layer leaves `text-font` unset so MapLibre
+ * applies its style-spec default. Shield numeral fonts come from the shield
+ * specification's `shieldFont`, not from the layer.
+ */
+export interface ShieldSchema {
+  /**
+   * Name used in error messages and as the built-in lookup id.
+   * The OpenMapTiles schema uses `"openmaptiles"`.
+   */
+  id: string;
+
+  /** Default MapLibre source id. Override per call when a style renames the source. */
+  source: string;
+
+  /** Vector source-layer that carries the route attributes. */
+  sourceLayer: string;
+
+  /** Default id of the symbol layer this schema produces. */
+  layerId: string;
+
+  /**
+   * Route attributes present on each concurrent route, in order.
+   *
+   * Must include `network` unless a custom image codec is set. The internal
+   * codec also reads `ref` and `name` when listed. Further attributes (for
+   * example OpenMapTiles `color`) still participate in image identity so two
+   * features that differ only there do not share a sprite. The renderer paints
+   * from network, ref, and name.
+   */
+  routeAttributes: readonly string[];
+
+  /**
+   * How many concurrent routes one feature may carry.
+   * OpenMapTiles features have `route_1_*` through `route_8_*`.
+   */
+  maxConcurrency: number;
+
+  /**
+   * Tile property for one attribute of one concurrent route.
+   *
+   * `routeIndex` is 1-based, matching OpenMapTiles (`route_1_network`).
+   * The same function is used to test whether a route slot is present and,
+   * unless a custom codec is set, to read values for the internal image id.
+   */
+  propertyName: (routeIndex: number, attribute: string) => string;
+
+  /**
+   * Feature property holding the road class used for sort order and reveal.
+   * OpenMapTiles uses `"class"`.
+   */
+  roadClassProperty: string;
+
+  /**
+   * Road classes from highest priority to lowest.
+   *
+   * The symbol sort key is the index in this list. A class that is not listed
+   * sorts after every listed class. An empty list disables class ordering.
+   */
+  roadClassOrder: readonly string[];
+
+  /**
+   * Zoom levels at which each {@link ShieldSchema.roadClassOrder} class is
+   * revealed (via binary `text-opacity`, not a fade).
+   *
+   * This array must be the same length as `roadClassOrder` and strictly
+   * increasing. Below the first zoom, only the first class is drawn. Each
+   * zoom except the last reveals one additional class. The last zoom draws
+   * every class, including classes that are not listed. An empty list, paired
+   * with an empty `roadClassOrder`, draws every feature at every zoom.
+   *
+   * The OpenMapTiles schema uses `[8, 10, 11, 12, 14]` for motorway, trunk,
+   * primary, secondary, and tertiary.
+   */
+  revealZooms: readonly number[];
+
+  /**
+   * Replace the internal image-id expression for one route slot.
+   * Set together with {@link ShieldSchema.parseImageName} and
+   * {@link ShieldSchema.formatImageName}. Leave all three unset to use the
+   * plugin's internal encoding of {@link ShieldSchema.routeAttributes}.
+   *
+   * `routeIndex` is 1-based. The library still wraps this expression in
+   * `image` and still decides whether the slot exists by testing
+   * {@link ShieldSchema.propertyName}.
+   */
+  getImageName?: (routeIndex: number) => ExpressionSpecification;
+
+  /**
+   * Parse an image id produced by this schema back into a route.
+   * Required when {@link ShieldSchema.getImageName} is set.
+   */
+  parseImageName?: (imageName: string) => RouteDefinition;
+
+  /**
+   * Write the image id for one route. Required when
+   * {@link ShieldSchema.getImageName} is set. Attributes other than network,
+   * ref, and name are written as empty when the internal codec is used.
+   */
+  formatImageName?: (network: string, ref: string, name: string) => string;
+
+  /**
+   * Whether a missing-image id belongs to this schema.
+   * Defaults to the internal encoding's prefix. Set this when a custom codec
+   * produces a different prefix.
+   */
+  acceptsImageId?: (imageId: string) => boolean;
+}
+
+/**
+ * Internal missing-image id prefix and attribute separator.
+ * Not part of any tileset schema; expression and parser must agree.
+ * Callers that need structured fields should use {@link parseShieldImageId}
+ * instead of splitting image ids themselves.
+ */
+const IMAGE_ID_PREFIX = "shield";
+const IMAGE_ID_SEPARATOR = "\n";
+
+/**
+ * Structured fields from a shield missing-image id for {@link ShieldSchema}.
+ *
+ * `network`, `ref`, `name`, and `color` are always strings (empty when absent).
+ * `color` is empty when the schema does not list that attribute.
+ */
+export interface ParsedShieldImageId {
+  /** Full missing-image id that was parsed. */
+  imageName: string;
+  network: string;
+  ref: string;
+  name: string;
+  color: string;
+}
+
+/**
+ * Per-call replacements for values that live on the schema but are often
+ * chosen by the style instead.
+ */
+export interface ShieldLayerOverrides {
+  /** MapLibre source id. Defaults to {@link ShieldSchema.source}. */
+  source?: string;
+  /** Vector source-layer. Defaults to {@link ShieldSchema.sourceLayer}. */
+  sourceLayer?: string;
+  /** Symbol layer id. Defaults to {@link ShieldSchema.layerId}. */
+  layerId?: string;
+  /**
+   * Extra space between concurrent shields, in ems.
+   * Defaults to `0.7`, so adjacent concurrent shields do not touch.
+   */
+  letterSpacing?: number;
+}
+
+/**
+ * Options for {@link createShieldRenderer} beyond shields and schema.
+ */
+export interface CreateShieldRendererOptions {
+  /**
+   * Additional image-id test. The schema's own id test still applies, so this
+   * can only narrow the set of ids the renderer claims.
+   */
+  filterImageID?: StringPredicate;
+  /**
+   * Decline route networks whose id matches this pattern.
+   * Typical OpenMapTiles use: `/^[lrni][chimpw]n$/` for recreational scope
+   * tags (`nwn`, `lcn`, …) that are not highway networks.
+   */
+  filterNetworks?: RegExp;
+  /** Debugging options applied before the first render. */
+  debugOptions?: DebugOptions;
+}
+
+/**
+ * Options for {@link addShieldLayer}.
+ * `schema` selects the tile encoding. `shields` selects the network
+ * definitions and drawing options ({@link ShieldSpecification}).
+ */
+export interface AddShieldLayerOptions
+  extends ShieldLayerOverrides,
+    CreateShieldRendererOptions {
+  /**
+   * Tile schema id or object. Pass `"openmaptiles"` for OpenMapTiles, or a
+   * custom {@link ShieldSchema} when the tileset differs.
+   */
+  schema: ShieldSchemaRef;
+  /**
+   * Shield network definitions and drawing options.
+   * A string or {@link URL} is fetched. A {@link ShieldSpecification} is used
+   * directly. This is not the MapLibre sprite sheet: blank images still come
+   * from the style's `sprite`. The same OpenMapTiles schema can draw any
+   * shield specification you supply.
+   */
+  shields: string | URL | ShieldSpecification;
+  /** Insert the new layer immediately before this layer id. */
+  beforeId?: string;
+}
+
+/**
+ * `text-field` expression for concurrent route shields.
+ *
+ * Styles that already have a shield layer assign the result to `text-field`.
+ * The expression asks MapLibre for one missing image per populated route slot,
+ * up to {@link ShieldSchema.maxConcurrency}. The image ids are the ones
+ * {@link routeParserFromSchema} parses.
+ *
+ * For a layer that does not exist yet, use {@link getShieldLayer} or
+ * {@link addShieldLayer} instead of assembling the rest of the layer yourself.
+ */
+export function getShieldExpression(
+  schema: ShieldSchemaRef
+): ExpressionSpecification {
+  const resolved = resolveSchema(schema);
+  const expression: unknown[] = ["format"];
+  for (
+    let routeIndex = 1;
+    routeIndex <= resolved.maxConcurrency;
+    routeIndex++
+  ) {
+    expression.push(routeImageExpression(resolved, routeIndex));
+  }
+  return expression as ExpressionSpecification;
+}
+
+/**
+ * Symbol layer for `schema`, including the image expression, the road-class
+ * sort key, and the zoom reveal ramp.
+ *
+ * For `"openmaptiles"`, this is the standard OpenMapTiles highway-shield
+ * layer. `text-font` is omitted so MapLibre uses its style-spec default
+ * (`Open Sans Regular`, `Arial Unicode MS Regular`). Spread the result into a
+ * style document. If the map already exists and the style has no shield layer,
+ * {@link addShieldLayer} adds this layer and installs the missing-image
+ * handler.
+ */
+export function getShieldLayer(
+  schema: ShieldSchemaRef,
+  overrides: ShieldLayerOverrides = {}
+): SymbolLayerSpecification {
+  const resolved = resolveSchema(schema);
+  return {
+    id: overrides.layerId ?? resolved.layerId,
+    type: "symbol",
+    source: overrides.source ?? resolved.source,
+    "source-layer": overrides.sourceLayer ?? resolved.sourceLayer,
+    layout: {
+      "text-rotation-alignment": "viewport-glyph",
+      "text-field": getShieldExpression(resolved),
+      "text-anchor": "center",
+      "text-letter-spacing": overrides.letterSpacing ?? 0.7,
+      "symbol-placement": "line",
+      "text-max-angle": 180,
+      "text-pitch-alignment": "viewport",
+      "symbol-sort-key": symbolSortKey(resolved),
+    },
+    paint: {
+      "text-opacity": textOpacity(resolved),
+    },
+    filter: routeFilter(resolved),
+  };
+}
+
+/**
+ * Parser and formatter for image ids produced by `schema`.
+ *
+ * Use this with {@link ShieldRenderer} or {@link URLShieldRenderer} when
+ * installing the handler yourself. Pair it with {@link isSchemaShieldId} so
+ * unrelated missing images remain available to other resolvers.
+ * Empty `ref`/`name` are returned as `""` so shield defs can treat blank the
+ * same way as a missing attribute. For legend UI that also needs `color` and
+ * the raw id, use {@link parseShieldImageId}.
+ */
+export function routeParserFromSchema(schema: ShieldSchemaRef): RouteParser {
+  const resolved = resolveSchema(schema);
+  return {
+    parse: (imageId: string) => parseSchemaImageName(resolved, imageId),
+    format: (network: string, ref: string, name: string) =>
+      formatSchemaImageName(resolved, network, ref, name),
+  };
+}
+
+/**
+ * Parse a shield missing-image id into style-facing fields.
+ *
+ * Unlike {@link RouteParser.parse}, every field is a string (empty when
+ * absent), `color` is included when the schema encodes it, and `imageName`
+ * is the original id. Uses the library's internal id encoding; do not split
+ * image ids on separators in client code.
+ */
+export function parseShieldImageId(
+  schema: ShieldSchemaRef,
+  imageName: string
+): ParsedShieldImageId {
+  const resolved = resolveSchema(schema);
+  if (resolved.parseImageName) {
+    const route = resolved.parseImageName(imageName);
+    return {
+      imageName,
+      network: route.network ?? "",
+      ref: route.ref ?? "",
+      name: route.name ?? "",
+      color: "",
+    };
+  }
+  const values = splitInternalImageId(resolved, imageName);
+  return {
+    imageName,
+    network: values[resolved.routeAttributes.indexOf("network")] ?? "",
+    ref: values[resolved.routeAttributes.indexOf("ref")] ?? "",
+    name: values[resolved.routeAttributes.indexOf("name")] ?? "",
+    color: values[resolved.routeAttributes.indexOf("color")] ?? "",
+  };
+}
+
+/**
+ * Whether `imageId` is a shield id from `schema`.
+ * This is the image-id filter {@link createShieldRenderer} installs.
+ */
+export function isSchemaShieldId(
+  schema: ShieldSchemaRef,
+  imageId: string
+): boolean {
+  const resolved = resolveSchema(schema);
+  if (resolved.acceptsImageId) {
+    return resolved.acceptsImageId(imageId);
+  }
+  return imageId.startsWith(IMAGE_ID_PREFIX + IMAGE_ID_SEPARATOR);
+}
+
+/**
+ * Renderer whose parser and image-id filter match `schema`.
+ *
+ * Call {@link AbstractShieldRenderer.renderOnMaplibreGL} to install it.
+ * Use this when the style document already contains the shield layer.
+ * {@link addShieldLayer} is the one-call version for a map whose style does
+ * not have that layer yet.
+ *
+ * @example
+ * ```ts
+ * createShieldRenderer("shields.json", "openmaptiles", {
+ *   filterNetworks: /^[lrni][chimpw]n$/,
+ * }).renderOnMaplibreGL(map);
+ * ```
+ */
+export function createShieldRenderer(
+  shields: string | URL | ShieldSpecification,
+  schema: ShieldSchemaRef,
+  options: CreateShieldRendererOptions = {}
+): AbstractShieldRenderer {
+  const resolved = resolveSchema(schema);
+  const parser = routeParserFromSchema(resolved);
+  const renderer = isShieldSpecification(shields)
+    ? new ShieldRenderer(shields, parser)
+    : new URLShieldRenderer(shields, parser);
+  const extraImageFilter = options.filterImageID;
+  renderer.filterImageID(
+    (imageId) =>
+      isSchemaShieldId(resolved, imageId) &&
+      (!extraImageFilter || extraImageFilter(imageId))
+  );
+  if (options.filterNetworks) {
+    const filter = options.filterNetworks;
+    renderer.filterNetwork((network) => !filter.test(network));
+  }
+  if (options.debugOptions) {
+    renderer.debugOptions(options.debugOptions);
+  }
+  return renderer;
+}
+
+/**
+ * Add a shield layer for `schema` and install the missing-image handler.
+ *
+ * The handler is installed before the layer is added, so the first render can
+ * resolve the images the new layer requests. The returned renderer is the
+ * same object {@link createShieldRenderer} builds, and it is already attached
+ * to `map`.
+ *
+ * Shield definitions stay in `options.shields`. A different color scheme or
+ * drawing style is a different shield specification used with the same schema.
+ *
+ * @example
+ * ```ts
+ * addShieldLayer(map, {
+ *   schema: "openmaptiles",
+ *   shields: "shields.json",
+ *   source: "openmaptiles",
+ * });
+ * ```
+ */
+export function addShieldLayer(
+  map: MapLibre,
+  options: AddShieldLayerOptions
+): AbstractShieldRenderer {
+  const schema = resolveSchema(options.schema);
+  const renderer = createShieldRenderer(options.shields, schema, options);
+  renderer.renderOnMaplibreGL(map);
+  map.addLayer(getShieldLayer(schema, options), options.beforeId);
+  return renderer;
+}
+
+function isShieldSpecification(
+  shields: string | URL | ShieldSpecification
+): shields is ShieldSpecification {
+  return typeof shields !== "string" && !(shields instanceof URL);
+}
+
+function imageNameExpression(
+  schema: ShieldSchema,
+  routeIndex: number
+): ExpressionSpecification {
+  if (schema.getImageName) {
+    return schema.getImageName(routeIndex);
+  }
+  const expression: unknown[] = ["concat", IMAGE_ID_PREFIX];
+  for (const attribute of schema.routeAttributes) {
+    expression.push(IMAGE_ID_SEPARATOR);
+    expression.push([
+      "coalesce",
+      ["get", schema.propertyName(routeIndex, attribute)],
+      "",
+    ]);
+  }
+  return expression as ExpressionSpecification;
+}
+
+function routeImageExpression(
+  schema: ShieldSchema,
+  routeIndex: number
+): ExpressionSpecification {
+  return [
+    "case",
+    [
+      "any",
+      ...schema.routeAttributes.map(
+        (attribute) =>
+          ["has", schema.propertyName(routeIndex, attribute)] as ["has", string]
+      ),
+    ],
+    ["image", imageNameExpression(schema, routeIndex)],
+    ["literal", ""],
+  ] as ExpressionSpecification;
+}
+
+function symbolSortKey(schema: ShieldSchema): ExpressionSpecification {
+  if (schema.roadClassOrder.length === 0) {
+    return ["literal", 0];
+  }
+  const expression: unknown[] = ["match", ["get", schema.roadClassProperty]];
+  schema.roadClassOrder.forEach((roadClass, index) => {
+    expression.push(roadClass, index);
+  });
+  expression.push(schema.roadClassOrder.length);
+  return expression as ExpressionSpecification;
+}
+
+/**
+ * Zoom reveal ramp for {@link ShieldSchema.roadClassOrder}, implemented as
+ * binary `text-opacity` (0 or 1). The first class is visible immediately.
+ * Each zoom except the last adds the next class. The last zoom shows every
+ * remaining feature.
+ */
+function textOpacity(schema: ShieldSchema): ExpressionSpecification {
+  if (schema.roadClassOrder.length === 0) {
+    return ["literal", 1];
+  }
+  const expression: unknown[] = ["step", ["zoom"], classesVisible(schema, 1)];
+  schema.revealZooms.forEach((zoom, index) => {
+    expression.push(zoom);
+    const revealsEveryClass = index === schema.revealZooms.length - 1;
+    expression.push(revealsEveryClass ? 1 : classesVisible(schema, index + 2));
+  });
+  return expression as ExpressionSpecification;
+}
+
+function classesVisible(
+  schema: ShieldSchema,
+  count: number
+): ExpressionSpecification {
+  const classes = schema.roadClassOrder.slice(0, count);
+  const roadClass = ["get", schema.roadClassProperty] as ["get", string];
+  if (classes.length === 1) {
+    return ["match", roadClass, classes[0], 1, 0] as ExpressionSpecification;
+  }
+  return ["match", roadClass, [...classes], 1, 0] as ExpressionSpecification;
+}
+
+function routeFilter(schema: ShieldSchema): FilterSpecification {
+  return [
+    "any",
+    ...schema.routeAttributes.map(
+      (attribute) =>
+        ["has", schema.propertyName(1, attribute)] as ["has", string]
+    ),
+  ] as FilterSpecification;
+}
+
+function splitInternalImageId(schema: ShieldSchema, imageId: string): string[] {
+  const prefix = IMAGE_ID_PREFIX + IMAGE_ID_SEPARATOR;
+  if (!imageId.startsWith(prefix)) {
+    throw new Error(`Image id "${imageId}" is not a ${schema.id} shield id`);
+  }
+  return imageId.split(IMAGE_ID_SEPARATOR).slice(1);
+}
+
+function parseSchemaImageName(
+  schema: ShieldSchema,
+  imageId: string
+): RouteDefinition {
+  if (schema.parseImageName) {
+    const route = schema.parseImageName(imageId);
+    return {
+      network: route.network ?? "",
+      ref: route.ref ?? "",
+      name: route.name ?? "",
+    };
+  }
+  const values = splitInternalImageId(schema, imageId);
+  return {
+    network: values[schema.routeAttributes.indexOf("network")] ?? "",
+    ref: values[schema.routeAttributes.indexOf("ref")] ?? "",
+    name: values[schema.routeAttributes.indexOf("name")] ?? "",
+  };
+}
+
+function formatSchemaImageName(
+  schema: ShieldSchema,
+  network: string,
+  ref: string,
+  name: string
+): string {
+  if (schema.formatImageName) {
+    return schema.formatImageName(network, ref, name);
+  }
+  const known: { [attribute: string]: string } = {
+    network,
+    ref: ref ?? "",
+    name: name ?? "",
+  };
+  let imageId = IMAGE_ID_PREFIX;
+  for (const attribute of schema.routeAttributes) {
+    imageId += IMAGE_ID_SEPARATOR + (known[attribute] ?? "");
+  }
+  return imageId;
+}
+
+/** Validate a {@link ShieldSchema}. Built-in schemas call this at module load. */
+export function assertShieldSchema(schema: ShieldSchema): void {
+  if (!schema.routeAttributes || schema.routeAttributes.length === 0) {
+    throw schemaError(
+      schema,
+      "routeAttributes must list at least one attribute"
+    );
+  }
+  if (!Number.isInteger(schema.maxConcurrency) || schema.maxConcurrency < 1) {
+    throw schemaError(schema, "maxConcurrency must be an integer >= 1");
+  }
+  const customHooks = [
+    schema.getImageName,
+    schema.parseImageName,
+    schema.formatImageName,
+  ].filter((hook) => hook != null);
+  const customCodec = customHooks.length > 0;
+  if (customCodec && customHooks.length !== 3) {
+    throw schemaError(
+      schema,
+      "getImageName, parseImageName, and formatImageName must be set together"
+    );
+  }
+  if (!customCodec && !schema.routeAttributes.includes("network")) {
+    throw schemaError(
+      schema,
+      'routeAttributes must include "network", or set a custom image codec'
+    );
+  }
+  if (schema.roadClassOrder.length !== schema.revealZooms.length) {
+    throw schemaError(
+      schema,
+      `revealZooms length (${schema.revealZooms.length}) must equal roadClassOrder length (${schema.roadClassOrder.length})`
+    );
+  }
+  for (let i = 1; i < schema.revealZooms.length; i++) {
+    if (schema.revealZooms[i] <= schema.revealZooms[i - 1]) {
+      throw schemaError(schema, "revealZooms must be strictly increasing");
+    }
+  }
+}
+
+function schemaError(schema: ShieldSchema, message: string): Error {
+  const id = schema && schema.id ? schema.id : "(missing id)";
+  return new Error(`Shield schema "${id}": ${message}`);
+}
