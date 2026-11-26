@@ -74,7 +74,7 @@ export function resolveSchema(schema: ShieldSchemaRef): ShieldSchema {
  * requested. Shield graphics, padding, and network definitions stay in the
  * shield specification you pass separately (for example your own
  * `shields.json`). The symbol layer leaves `text-font` unset so MapLibre
- * applies its style-spec default. Shield numeral fonts come from the sprite
+ * applies its style-spec default. Shield numeral fonts come from the shield
  * specification's `shieldFont`, not from the layer.
  */
 export interface ShieldSchema {
@@ -224,7 +224,7 @@ export interface ShieldLayerOverrides {
 }
 
 /**
- * Options for {@link createShieldRenderer} beyond sprites and schema.
+ * Options for {@link createShieldRenderer} beyond shields and schema.
  */
 export interface CreateShieldRendererOptions {
   /**
@@ -244,7 +244,8 @@ export interface CreateShieldRendererOptions {
 
 /**
  * Options for {@link addShieldLayer}.
- * `schema` selects the tile encoding. `sprites` selects the artwork.
+ * `schema` selects the tile encoding. `shields` selects the network
+ * definitions and drawing options ({@link ShieldSpecification}).
  */
 export interface AddShieldLayerOptions
   extends ShieldLayerOverrides,
@@ -255,12 +256,13 @@ export interface AddShieldLayerOptions
    */
   schema: ShieldSchemaRef;
   /**
-   * Shield artwork and network definitions.
+   * Shield network definitions and drawing options.
    * A string or {@link URL} is fetched. A {@link ShieldSpecification} is used
-   * directly. This is not part of the schema: the same OpenMapTiles schema can
-   * draw any sprite set you supply.
+   * directly. This is not the MapLibre sprite sheet: blank images still come
+   * from the style's `sprite`. The same OpenMapTiles schema can draw any
+   * shield specification you supply.
    */
-  sprites: string | URL | ShieldSpecification;
+  shields: string | URL | ShieldSpecification;
   /** Insert the new layer immediately before this layer id. */
   beforeId?: string;
 }
@@ -412,15 +414,15 @@ export function isSchemaShieldId(
  * ```
  */
 export function createShieldRenderer(
-  sprites: string | URL | ShieldSpecification,
+  shields: string | URL | ShieldSpecification,
   schema: ShieldSchemaRef,
   options: CreateShieldRendererOptions = {}
 ): AbstractShieldRenderer {
   const resolved = resolveSchema(schema);
   const parser = routeParserFromSchema(resolved);
-  const renderer = isShieldSpecification(sprites)
-    ? new ShieldRenderer(sprites, parser)
-    : new URLShieldRenderer(sprites, parser);
+  const renderer = isShieldSpecification(shields)
+    ? new ShieldRenderer(shields, parser)
+    : new URLShieldRenderer(shields, parser);
   const extraImageFilter = options.filterImageID;
   renderer.filterImageID(
     (imageId) =>
@@ -445,14 +447,14 @@ export function createShieldRenderer(
  * same object {@link createShieldRenderer} builds, and it is already attached
  * to `map`.
  *
- * Artwork stays in `options.sprites`. A different color scheme or drawing
- * style is a different sprite specification used with the same schema.
+ * Shield definitions stay in `options.shields`. A different color scheme or
+ * drawing style is a different shield specification used with the same schema.
  *
  * @example
  * ```ts
  * addShieldLayer(map, {
  *   schema: "openmaptiles",
- *   sprites: "shields.json",
+ *   shields: "shields.json",
  *   source: "openmaptiles",
  * });
  * ```
@@ -462,16 +464,16 @@ export function addShieldLayer(
   options: AddShieldLayerOptions
 ): AbstractShieldRenderer {
   const schema = resolveSchema(options.schema);
-  const renderer = createShieldRenderer(options.sprites, schema, options);
+  const renderer = createShieldRenderer(options.shields, schema, options);
   renderer.renderOnMaplibreGL(map);
   map.addLayer(getShieldLayer(schema, options), options.beforeId);
   return renderer;
 }
 
 function isShieldSpecification(
-  sprites: string | URL | ShieldSpecification
-): sprites is ShieldSpecification {
-  return typeof sprites !== "string" && !(sprites instanceof URL);
+  shields: string | URL | ShieldSpecification
+): shields is ShieldSpecification {
+  return typeof shields !== "string" && !(shields instanceof URL);
 }
 
 function imageNameExpression(

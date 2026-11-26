@@ -33,9 +33,9 @@ import { HeadlessGraphicsFactory } from "@americana/trailblazer/headless";
 Shield drawing has two independent pieces:
 
 - A **schema** describes how route attributes are stored in the vector tiles. Pass `"openmaptiles"` for the built-in OpenMapTiles layout, or supply a different object of the same shape for another tileset.
-- A **sprite specification** describes the artwork: which graphic, padding, and text treatment to draw for each network. Styles that want Americana's shields can point at [the premade specification](https://americanamap.org/shields.json). A different color scheme is a different sprite specification, used with the same schema.
+- A **shield specification** describes the artwork: which graphic, padding, and text treatment to draw for each network. Styles that want Americana's shields can point at [the premade specification](https://americanamap.org/shields.json). A different color scheme is a different shield specification, used with the same schema. Blank images still come from the style's MapLibre sprite sheet.
 
-Shield graphics are images. The symbol layer leaves `text-font` unset so MapLibre applies its style-spec default (`Open Sans Regular`, `Arial Unicode MS Regular`). Numeral text on the shields comes from `shieldFont` in the sprite specification, not from the layer.
+Shield graphics are images. The symbol layer leaves `text-font` unset so MapLibre applies its style-spec default (`Open Sans Regular`, `Arial Unicode MS Regular`). Numeral text on the shields comes from `shieldFont` in the shield specification, not from the layer.
 
 ### Add shields to a map
 
@@ -46,7 +46,7 @@ import { addShieldLayer } from "@americana/trailblazer";
 
 addShieldLayer(map, {
   schema: "openmaptiles",
-  sprites: "https://americanamap.org/shields.json",
+  shields: "https://americanamap.org/shields.json",
 });
 ```
 
@@ -55,18 +55,18 @@ Override the source id when the style names its OpenMapTiles source something el
 ```typescript
 addShieldLayer(map, {
   schema: "openmaptiles",
-  sprites: "https://americanamap.org/shields.json",
+  shields: "https://americanamap.org/shields.json",
   source: "omf",
   beforeId: "road-label",
 });
 ```
 
-`sprites` may be a URL or a shield specification object built in code. Pass `filterNetworks` to decline route networks by pattern before the first render. The function returns the renderer, already attached to the map. Call `onShieldDefLoad` on that return value to observe the loaded network definitions:
+`shields` may be a URL or a shield specification object built in code. Pass `filterNetworks` to decline route networks by pattern before the first render. The function returns the renderer, already attached to the map. Call `onShieldDefLoad` on that return value to observe the loaded network definitions:
 
 ```typescript
 const renderer = addShieldLayer(map, {
   schema: "openmaptiles",
-  sprites: shields,
+  shields,
   // Skip recreational route networks (nwn, lwn, rcn, and so on).
   filterNetworks: /^[lrni][chimpw]n$/,
 });
@@ -124,7 +124,7 @@ const MY_SCHEMA: ShieldSchema = {
 
 addShieldLayer(map, {
   schema: MY_SCHEMA,
-  sprites: myShields,
+  shields: myShields,
 });
 ```
 

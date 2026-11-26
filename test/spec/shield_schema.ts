@@ -622,7 +622,7 @@ describe("shield schema", function () {
       const { map, calls } = fakeMap();
       addShieldLayer(map, {
         schema: "openmaptiles",
-        sprites: interstateSpec,
+        shields: interstateSpec,
         source: "omf",
         beforeId: "road-label",
       });
@@ -644,7 +644,7 @@ describe("shield schema", function () {
       const { map, calls } = fakeMap();
       addShieldLayer(map, {
         schema: "openmaptiles",
-        sprites: interstateSpec,
+        shields: interstateSpec,
         filterImageID: () => false,
       });
 
@@ -652,7 +652,7 @@ describe("shield schema", function () {
       expect(calls.added).to.eql([]);
     });
 
-    it("loads a sprite URL with the schema parser", async function () {
+    it("loads a shields URL with the schema parser", async function () {
       const { map } = fakeMap();
       const originalFetch = globalThis.fetch;
       let requested: string | undefined;
@@ -666,7 +666,7 @@ describe("shield schema", function () {
       try {
         addShieldLayer(map, {
           schema: "openmaptiles",
-          sprites: "https://example.test/shields.json",
+          shields: "https://example.test/shields.json",
         });
         await new Promise((resolve) => setTimeout(resolve, 0));
         expect(requested).to.equal("https://example.test/shields.json");

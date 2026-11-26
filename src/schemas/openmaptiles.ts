@@ -13,7 +13,7 @@ import { registerBuiltinSchema } from "../shield_schema";
  * ```ts
  * addShieldLayer(map, {
  *   schema: "openmaptiles",
- *   sprites: "shields.json",
+ *   shields: "shields.json",
  * });
  * ```
  */
