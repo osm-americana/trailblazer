@@ -344,10 +344,14 @@ function bannerAreaHeight(
   );
 }
 
+/**
+ * Draw a shield for `routeDef`.
+ * Returns `null` when no drawable shield definition applies.
+ */
 export function generateShieldCtx(
   r: ShieldRenderingContext,
   routeDef: RouteDefinition
-): CanvasRenderingContext2D {
+): CanvasRenderingContext2D | null {
   let shieldDef: ShieldDefinition = getShieldDef(r.shieldDef, routeDef);
 
   if (shieldDef == null) {

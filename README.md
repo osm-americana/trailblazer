@@ -26,6 +26,19 @@ For Node scripts and tests that need to draw shields without a browser, install 
 import { HeadlessGraphicsFactory } from "@americana/trailblazer/headless";
 ```
 
+Attach that factory to a `ShieldRenderer` (or `URLShieldRenderer`), then call `getGraphicForRoute(network, ref, name)`. That method returns `null` when no drawable shield exists—for example an empty `ref` with no `noref` definition, or an invalid `ref` on an unknown network. The MapLibre missing-image path already falls back to an empty sprite; headless callers must do the same:
+
+```ts
+let ctx = shieldRenderer.getGraphicForRoute(network, ref, name);
+if (ctx == null) {
+  console.warn(
+    "Didn't produce a shield for",
+    JSON.stringify({ network, ref, name })
+  );
+  ctx = shieldRenderer.emptySprite();
+}
+```
+
 ## Usage
 
 Rendering shields requires the following compoments:
