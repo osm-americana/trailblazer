@@ -23,9 +23,6 @@ import {
   escutcheonDownShield,
   fishheadDownShield,
   pentagonUpShield,
-  homePlateDownShield,
-  homePlateUpShield,
-  hexagonVerticalShield,
   hexagonHorizontalShield,
   octagonVerticalShield,
   paBeltShield,
@@ -51,7 +48,9 @@ const stroke = "#000000";
 const text = "#000000";
 
 const options: ShieldSpecification["options"] = {
-  bannerHeight: 9,
+  // Taller than typical map options (9) so banner labels stay readable at
+  // README sample size; production maps usually keep this smaller.
+  bannerHeight: 14,
   bannerPadding: 1,
   bannerTextColor: "#000000",
   bannerTextHaloColor: "#ffffff",
@@ -72,12 +71,12 @@ type Sample = {
 
 /** Vibrant contrast color for banner samples (Pantone 187). */
 const bannerRed = "#bf2033";
-/** Historic US / Route 66 brown (Pantone 469), matching OSM Americana. */
+/** Historic US / Route 66 brown (Pantone 469). */
 const historicBrown = "#693f23";
-/** Americana shield blue (Pantone 294) — good colorDarken demo fill. */
-const americanaBlue = "#003f87";
-/** Americana map land fill — cream behind samples so README tables match the map. */
-const americanaCream = "hsl(30, 44%, 96%)";
+/** Shield blue (Pantone 294) for colorDarken demos. */
+const demoBlue = "#003f87";
+/** Neutral cream behind samples so README tables stay readable. */
+const sampleCream = "hsl(30, 44%, 96%)";
 
 function deg(degrees: number): number {
   return (degrees * Math.PI) / 180;
@@ -117,10 +116,10 @@ function makeUsBadgeBlank(size = 48): { data: ImageData } {
   return { data: ctx.getImageData(0, 0, size, size) };
 }
 
-/** Pixels of Americana cream around each sample so shields aren't flush to the edge. */
+/** Pixels of cream around each sample so shields aren't flush to the edge. */
 const creamPad = 5;
 
-/** Composite the rendered shield onto Americana cream (readable in GitHub tables). */
+/** Composite the rendered shield onto a cream background (readable in GitHub tables). */
 function withCreamBackground(
   canvas: {
     width: number;
@@ -136,7 +135,7 @@ function withCreamBackground(
   if (format === "png") {
     const out = createCanvas(outW, outH);
     const ctx = out.getContext("2d");
-    ctx.fillStyle = americanaCream;
+    ctx.fillStyle = sampleCream;
     ctx.fillRect(0, 0, outW, outH);
     ctx.drawImage(canvas as never, creamPad, creamPad);
     return out.toBuffer();
@@ -199,7 +198,7 @@ const catalog: Sample[] = [
   {
     file: "pill.svg",
     network: "cat:pill",
-    ref: "9",
+    ref: "123",
     def: pillShield(fill, stroke, text, undefined!),
   },
   {
@@ -246,22 +245,61 @@ const catalog: Sample[] = [
     def: pentagonUpShield(8, 15, fill, stroke, text, 2, 0, undefined!),
   },
   {
+    // Milder tip + tight padding so the ref stays large in the catalog table.
     file: "home-plate-down.svg",
     network: "cat:homeDown",
     ref: "2",
-    def: homePlateDownShield(8, fill, stroke, text, 2, 2, undefined!),
+    def: shape(
+      "pentagon",
+      {
+        fillColor: fill,
+        strokeColor: stroke,
+        pointUp: false,
+        yOffset: 5,
+        sideAngle: 0,
+        radius1: 2,
+        radius2: 2,
+      },
+      {
+        textLayout: roundedRectTextConstraint(2),
+        padding: { left: 2, right: 2, top: 2, bottom: 3 },
+      }
+    ),
   },
   {
     file: "home-plate-up.svg",
     network: "cat:homeUp",
     ref: "2",
-    def: homePlateUpShield(8, fill, stroke, text, 2, 2, undefined!),
+    def: shape(
+      "pentagon",
+      {
+        fillColor: fill,
+        strokeColor: stroke,
+        pointUp: true,
+        yOffset: 5,
+        sideAngle: 0,
+        radius1: 2,
+        radius2: 2,
+      },
+      {
+        textLayout: roundedRectTextConstraint(2),
+        padding: { left: 2, right: 2, top: 3, bottom: 2 },
+      }
+    ),
   },
   {
     file: "hexagon-vertical.svg",
     network: "cat:hexV",
     ref: "11",
-    def: hexagonVerticalShield(4, fill, stroke, text, 2, undefined!),
+    // Helper pads top/bottom with 1+yOffset and crushes the ref; keep padding tight.
+    def: shape(
+      "hexagonVertical",
+      { fillColor: fill, strokeColor: stroke, yOffset: 4, radius: 2 },
+      {
+        textLayout: roundedRectTextConstraint(2),
+        padding: { left: 2, right: 2, top: 2, bottom: 2 },
+      }
+    ),
   },
   {
     file: "hexagon-horizontal.svg",
@@ -411,33 +449,94 @@ const paramSamples: Sample[] = [
     ),
   },
 
-  // radius1 / radius2 on home-plate (pentagon)
+  // radius1 / radius2 on home-plate (pentagon). Mild tip + tight padding
+  // so the ref stays readable while the corner radii stay obvious.
   {
     file: "param-radius1-sharp.svg",
     network: "p:r1sharp",
     ref: "9",
-    def: homePlateDownShield(10, fill, stroke, text, 0, 4, undefined!),
+    def: shape(
+      "pentagon",
+      {
+        fillColor: fill,
+        strokeColor: stroke,
+        pointUp: false,
+        yOffset: 5,
+        sideAngle: 0,
+        radius1: 0,
+        radius2: 4,
+      },
+      {
+        textLayout: roundedRectTextConstraint(4),
+        padding: { left: 2, right: 2, top: 2, bottom: 3 },
+      }
+    ),
   },
   {
     file: "param-radius1-round.svg",
     network: "p:r1round",
     ref: "9",
-    def: homePlateDownShield(10, fill, stroke, text, 8, 4, undefined!),
+    def: shape(
+      "pentagon",
+      {
+        fillColor: fill,
+        strokeColor: stroke,
+        pointUp: false,
+        yOffset: 5,
+        sideAngle: 0,
+        radius1: 8,
+        radius2: 4,
+      },
+      {
+        textLayout: roundedRectTextConstraint(4),
+        padding: { left: 2, right: 2, top: 2, bottom: 3 },
+      }
+    ),
   },
   {
     file: "param-radius2-sharp.svg",
     network: "p:r2sharp",
     ref: "9",
-    def: homePlateDownShield(10, fill, stroke, text, 2, 0, undefined!),
+    def: shape(
+      "pentagon",
+      {
+        fillColor: fill,
+        strokeColor: stroke,
+        pointUp: false,
+        yOffset: 5,
+        sideAngle: 0,
+        radius1: 2,
+        radius2: 0,
+      },
+      {
+        textLayout: roundedRectTextConstraint(0),
+        padding: { left: 2, right: 2, top: 2, bottom: 3 },
+      }
+    ),
   },
   {
     file: "param-radius2-round.svg",
     network: "p:r2round",
     ref: "9",
-    def: homePlateDownShield(10, fill, stroke, text, 2, 8, undefined!),
+    def: shape(
+      "pentagon",
+      {
+        fillColor: fill,
+        strokeColor: stroke,
+        pointUp: false,
+        yOffset: 5,
+        sideAngle: 0,
+        radius1: 2,
+        radius2: 8,
+      },
+      {
+        textLayout: roundedRectTextConstraint(8),
+        padding: { left: 2, right: 2, top: 2, bottom: 3 },
+      }
+    ),
   },
 
-  // yOffset — escutcheon
+  // yOffset: escutcheon
   {
     file: "param-yoffset-escutcheon-2.svg",
     network: "p:yEsc2",
@@ -451,7 +550,7 @@ const paramSamples: Sample[] = [
     def: escutcheonDownShield(14, fill, stroke, text, 0, undefined!),
   },
 
-  // yOffset — vertical hexagon (minimal padding so the ref stays readable;
+  // yOffset: vertical hexagon (minimal padding so the ref stays readable;
   // helpers scale top/bottom with yOffset and crush the text).
   {
     file: "param-yoffset-hexv-2.svg",
@@ -480,7 +579,7 @@ const paramSamples: Sample[] = [
     ),
   },
 
-  // yOffset — pentagon tip (same: keep padding tight so the ref shows)
+  // yOffset: pentagon tip (same: keep padding tight so the ref shows)
   {
     file: "param-yoffset-pentagon-4.svg",
     network: "p:yPent4",
@@ -524,7 +623,7 @@ const paramSamples: Sample[] = [
     ),
   },
 
-  // sideAngle — trapezoid
+  // sideAngle: trapezoid
   {
     file: "param-sideangle-trap-5.svg",
     network: "p:saTrap5",
@@ -538,7 +637,7 @@ const paramSamples: Sample[] = [
     def: trapezoidDownShield(15, fill, stroke, text, 0, undefined!),
   },
 
-  // sideAngle — horizontal hexagon
+  // sideAngle: horizontal hexagon
   {
     file: "param-sideangle-hexh-15.svg",
     network: "p:saHex15",
@@ -552,7 +651,7 @@ const paramSamples: Sample[] = [
     def: hexagonHorizontalShield(40, fill, stroke, text, 2, undefined!),
   },
 
-  // sideAngle — pentagon with slanted sides
+  // sideAngle: pentagon with slanted sides
   {
     file: "param-sideangle-pentagon-0.svg",
     network: "p:saPent0",
@@ -566,7 +665,7 @@ const paramSamples: Sample[] = [
     def: pentagonUpShield(8, 20, fill, stroke, text, 2, 0, undefined!),
   },
 
-  // pointUp — triangle
+  // pointUp: triangle
   {
     file: "param-pointup-triangle-false.svg",
     network: "p:ptTriF",
@@ -593,7 +692,7 @@ const paramSamples: Sample[] = [
     ),
   },
 
-  // pointUp — fishhead
+  // pointUp: fishhead
   {
     file: "param-pointup-fishhead-false.svg",
     network: "p:ptFishF",
@@ -620,7 +719,7 @@ const paramSamples: Sample[] = [
     ),
   },
 
-  // shortSideUp — trapezoid
+  // shortSideUp: trapezoid
   {
     file: "param-shortsideup-false.svg",
     network: "p:ssuF",
@@ -634,7 +733,7 @@ const paramSamples: Sample[] = [
     def: trapezoidUpShield(18, fill, stroke, text, 0, undefined!),
   },
 
-  // banners (multi) — keep labels ≤3 chars so they stay readable at sample size
+  // banners (multi): keep labels ≤3 chars so they stay readable at sample size
   {
     file: "param-banners-one.svg",
     network: "p:ban1",
@@ -676,7 +775,7 @@ const paramSamples: Sample[] = [
     ),
   },
 
-  // colorLighten — sprite blanks only (PNG; SVG canvas cannot putImageData).
+  // colorLighten: sprite blanks only (PNG; SVG canvas cannot putImageData).
   // Badge is 48px so the tint is obvious in the README.
   {
     file: "param-colorlighten-plain.png",
@@ -709,7 +808,7 @@ const paramSamples: Sample[] = [
     def: {
       spriteBlank: "demo_badge",
       textColor: "#ffffff",
-      colorDarken: americanaBlue,
+      colorDarken: demoBlue,
       padding: { left: 8, right: 8, top: 10, bottom: 12 },
     },
   },

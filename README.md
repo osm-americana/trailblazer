@@ -32,7 +32,7 @@ Rendering shields requires the following compoments:
 
 1. **Encode shield information in vector tiles**. First, your tiles must contain the information which tells the shield renderer what shields to draw. In OpenMapTiles, shield information is encoded in the [`transportation_name`](https://openmaptiles.org/schema/#transportation_name) vector tile layer with a series of attributes named `route_1`, `route_2`, etc. Each attribute contains a text string which contains all of the information needed to determine which graphic to display, including numeric route number if the shield is numbered. However, this library allows you to specify how the shield information has been encoded, and it's possible to stitch together data from multiple fields when encoding shield data.
 
-2. **Expose shield information in a style layer**. Next, route information must be exposed in a maplibre expression using [image](https://maplibre.org/maplibre-gl-js-docs/style-spec/expressions/#types-image) in a structured string containing the route information. For example, you might encode Interstate 95 as an image named `shield|US:I=95`. Normally, the image expression is used to point to pre-designated sprites in a sprite sheet, but in this case, we're pointing to a sprite which doesn't exist called `shield|US:I=95`. MapLibre asks the map's [missing style image resolver](https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#setmissingstyleimageresolver) for that ID, and the shield renderer generates the graphic just in time. As an example of how to encode shield information, see OSM Americana's [`highway_shield`](https://github.com/osm-americana/openstreetmap-americana/blob/main/src/layer/highway_shield.js) style layer.
+2. **Expose shield information in a style layer**. Next, route information must be exposed in a maplibre expression using [image](https://maplibre.org/maplibre-gl-js-docs/style-spec/expressions/#types-image) in a structured string containing the route information. For example, you might encode Interstate 95 as an image named `shield|US:I=95`. Normally, the image expression is used to point to pre-designated sprites in a sprite sheet, but in this case, we're pointing to a sprite which doesn't exist called `shield|US:I=95`. MapLibre asks the map's [missing style image resolver](https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#setmissingstyleimageresolver) for that ID, and the shield renderer generates the graphic just in time. As an example of how to encode shield information, see this [`highway_shield`](https://github.com/osm-americana/openstreetmap-americana/blob/main/src/layer/highway_shield.js) style layer.
 
 3. **Define a parser that describes how route information is encoded**. There are three parts to a route definition:
 
@@ -73,7 +73,7 @@ Rendering shields requires the following compoments:
      !/^[lrni][chimpw]n$/.test(network);
    ```
 
-5. **Create shield definitions and artwork**. The shield definition is expressed as a JSON file along with a set of sprites containing any raster artwork used for the shields. It can be generated as an object or hosted as a JSON file accessible by URL. See the next section for how to create this definition. [A premade shield definition file](https://americanamap.org/shields.json) is available for maps that have a color scheme and visual style similar to OSM Americana.
+5. **Create shield definitions and artwork**. The shield definition is expressed as a JSON file along with a set of sprites containing any raster artwork used for the shields. It can be generated as an object or hosted as a JSON file accessible by URL. See the next section for how to create this definition. [A premade shield definition file](https://americanamap.org/shields.json) is available for maps with a similar color scheme and visual style.
 
 6. **Hook up the shield generator to a maplibre-gl-js map**. Pass either the URL of the JSON shield definition or create an object in javascript code. There are two separate classes for each approach.
 
@@ -215,7 +215,7 @@ You should create one definition entry for each network. The entry key must matc
 
 ### Sharing bannered networks with `bannerMap`
 
-Many routes are bannered variants of a base network—truck, alternate, bypass, business, and so on. Those variants usually share the same shield artwork and layout; only the labels above the shield differ. Instead of copying the full definition for every variant, put a **`bannerMap`** on the base network:
+Many routes are bannered variants of a base network (truck, alternate, bypass, business, and so on). Those variants usually share the same shield artwork and layout; only the labels above the shield differ. Instead of copying the full definition for every variant, put a **`bannerMap`** on the base network:
 
 ```json
 "US:TX": {
@@ -244,15 +244,15 @@ When the shield specification loads, Trailblazer expands each `bannerMap` entry 
 
 ### Handling special case networks
 
-The shield specification allows for the handling of special cases. For example, in OSM Americana, we wanted to create special shields for the [Kentucky Parkway System](https://en.wikipedia.org/wiki/List_of_parkways_and_named_highways_in_Kentucky). This network used a particularly ugly set of shields that looked something like this:
+The shield specification allows for the handling of special cases. For example, suppose you want special shields for the [Kentucky Parkway System](https://en.wikipedia.org/wiki/List_of_parkways_and_named_highways_in_Kentucky). That network used a particularly ugly set of shields that looked something like this:
 
 ![Western Kentucky Parkway shield](https://upload.wikimedia.org/wikipedia/en/d/db/Western_Kentucky_Parkway_fair_use.svg)
 
-The Americana team wanted to draw a series of shields that used two-letter codes to represent each of the Parkways, so that it would look like this:
+You might instead draw a series of shields that use two-letter codes to represent each of the Parkways, so that it would look like this:
 
 ![Kentucky parkways](https://wiki.openstreetmap.org/w/images/d/da/Kentucky_parkway_Americana.png)
 
-However, these two-letter codes weren't actually used as route numbers on shields, so it wasn't appropriate to add them to the `ref=*` tag in OpenStreetMap. Instead, the team used the `refsByName` property, and then defined what two-letter code is assigned to each named route network as follows:
+However, these two-letter codes weren't actually used as route numbers on shields, so it wasn't appropriate to add them to the `ref=*` tag in OpenStreetMap. Instead, use the `refsByName` property to define what two-letter code is assigned to each named route as follows:
 
 ```json
   "US:KY:Parkway": {
@@ -373,11 +373,11 @@ Samples below (`npm run docs:shape-samples`) show each built-in `drawFunc`. One 
 | ![](media/shapes/hexagon-horizontal.svg)                                                                                   | `hexagonHorizontal` | Pointed sides; `sideAngle`.                                                                    |
 | ![](media/shapes/octagon-vertical.svg)                                                                                     | `octagonVertical`   | `yOffset` and `sideAngle`.                                                                     |
 
-Banners are not a `drawFunc`—set the separate `banners` field on the shield definition (see [Banners](#banners) below). Example: ![](media/shapes/bannered-pill.svg)
+Banners are not a `drawFunc`. Set the separate `banners` field on the shield definition (see [Banners](#banners) below). Example: ![](media/shapes/bannered-pill.svg)
 
 #### JavaScript helper functions
 
-If you build shield definitions in JavaScript or TypeScript (as OSM Americana does), the `*Shield` helpers return a full network definition—`shapeBlank`, `padding`, `textLayout`, and `textColor`—so you do not have to spell those out by hand. They are not part of the JSON schema; calling a helper just produces ordinary definition objects.
+If you build shield definitions in JavaScript or TypeScript, the `*Shield` helpers return a full network definition (`shapeBlank`, `padding`, `textLayout`, and `textColor`) so you do not have to spell those out by hand. They are not part of the JSON schema; calling a helper just produces ordinary definition objects.
 
 | Helper                     | `drawFunc`          | Notes                                              |
 | -------------------------- | ------------------- | -------------------------------------------------- |
@@ -401,7 +401,7 @@ If you build shield definitions in JavaScript or TypeScript (as OSM Americana do
 | `paBeltShield`             | `paBelt`            | Custom graphic (see below).                        |
 | `bransonRouteShield`       | `branson`           | Custom graphic (see below).                        |
 
-Example—this helper call:
+Example: this helper call:
 
 ```js
 import { roundedRectShield } from "@americana/trailblazer";
@@ -552,7 +552,7 @@ Trapezoid only: which base is shorter.
 
 ##### Banners
 
-Not a `params` field—set `banners` on the shield definition to draw short labels above the blank. Prefer ≤3 characters so they stay readable at shield size. Optional `bannerTextColor` overrides the global `options.bannerTextColor`.
+Not a `params` field. Set `banners` on the shield definition to draw short labels above the blank. Prefer ≤3 characters so they stay readable at shield size. Optional `bannerTextColor` overrides the global `options.bannerTextColor`.
 
 | ![](media/shapes/param-banners-one.svg) | ![](media/shapes/param-banners-two.svg) |
 | --------------------------------------- | --------------------------------------- |
@@ -564,7 +564,7 @@ Not a `params` field—set `banners` on the shield definition to draw short labe
 
 ##### `colorLighten` / `colorDarken`
 
-These recolor **sprite** blanks (`spriteBlank`), not drawn `shapeBlank` shapes. Black pixels become `colorLighten`; white pixels become `colorDarken`. Americana uses lighten for historic US routes (including Route 66) with Pantone 469 brown (`#693f23`):
+These recolor **sprite** blanks (`spriteBlank`), not drawn `shapeBlank` shapes. Black pixels become `colorLighten`; white pixels become `colorDarken`. For example, historic US routes (including Route 66) can use Pantone 469 brown (`#693f23`) as `colorLighten`:
 
 | ![](media/shapes/param-colorlighten-plain.png) | ![](media/shapes/param-colorlighten-brown.png)  | ![](media/shapes/param-colordarken-blue.png)   |
 | ---------------------------------------------- | ----------------------------------------------- | ---------------------------------------------- |
@@ -581,7 +581,7 @@ These recolor **sprite** blanks (`spriteBlank`), not drawn `shapeBlank` shapes. 
 
 ### Custom shield graphics
 
-Besides the stock shapes, you can register a custom `drawFunc`. Bundled examples (same JSON shape—just a different `drawFunc` name):
+Besides the stock shapes, you can register a custom `drawFunc`. Bundled examples (same JSON shape, just a different `drawFunc` name):
 
 | Sample                        | `drawFunc` | Use                                                                                                       |
 | ----------------------------- | ---------- | --------------------------------------------------------------------------------------------------------- |
