@@ -619,14 +619,7 @@ Coverage is collected with [c8](https://github.com/bcoe/c8) over the TypeScript 
 npm run test:coverage
 ```
 
-This prints a summary in the terminal and writes a full HTML report to `coverage/`. Open the report locally:
-
-```sh
-open coverage/index.html   # macOS
-xdg-open coverage/index.html   # Linux
-```
-
-The `coverage/` directory is gitignored. On pull requests, CI also:
+This prints a summary in the terminal and writes a full HTML report to `coverage/` (gitignored). On pull requests, CI also:
 
 - posts the coverage summary on the Actions job summary page (visible from the Checks tab)
 - uploads the HTML report as a `coverage-report` workflow artifact
