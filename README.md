@@ -356,24 +356,24 @@ If `shapeBlank` is specified, the shield is drawn as a vector shape. In JSON you
 }
 ```
 
-Samples below (`npm run docs:shape-samples`) show each built-in `drawFunc`. One `drawFunc` can produce several looks via `params` (for example `pentagon` covers both a plain shield and a home plate). Angles in `params.sideAngle` are **radians**.
+Samples below (`npm run docs:shape-samples`) show each built-in `drawFunc`. Several looks can share one `drawFunc` by changing `params` (a home plate is just a `pentagon` with vertical sides). Where a note mentions `sideAngle`, the JSON value is in **radians**.
 
-| Sample                                                                                                                     | `drawFunc`          | Notes                                                                                          |
-| -------------------------------------------------------------------------------------------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------- |
-| ![](media/shapes/circle.svg) ![](media/shapes/oval.svg)                                                                    | `ellipse`           | Fixed `rectWidth` → circle; omit `rectWidth` for a variable-width oval.                        |
-| ![](media/shapes/rounded-rectangle.svg)                                                                                    | `roundedRectangle`  | Corner `radius` (default 2).                                                                   |
-| ![](media/shapes/pill.svg)                                                                                                 | `pill`              | Capsule ends.                                                                                  |
-| ![](media/shapes/diamond.svg)                                                                                              | `diamond`           |                                                                                                |
-| ![](media/shapes/triangle-down.svg)                                                                                        | `triangle`          | `pointUp` selects orientation.                                                                 |
-| ![](media/shapes/trapezoid-down.svg) ![](media/shapes/trapezoid-up.svg)                                                    | `trapezoid`         | `shortSideUp` selects orientation; `sideAngle` leans the sides.                                |
-| ![](media/shapes/escutcheon-down.svg)                                                                                      | `escutcheon`        | Curved bottom; `yOffset` sets how deep the point is.                                           |
-| ![](media/shapes/fishhead-down.svg)                                                                                        | `fishhead`          | `pointUp` selects orientation.                                                                 |
-| ![](media/shapes/pentagon-up.svg) ![](media/shapes/home-plate-down.svg) ![](media/shapes/home-plate-up.svg)                | `pentagon`          | `yOffset`, `sideAngle`, `radius1`, `radius2`; `sideAngle: 0` + `pointUp` → home-plate look.    |
-| ![](media/shapes/hexagon-vertical.svg)                                                                                     | `hexagonVertical`   | Pointed top and bottom; `yOffset`.                                                             |
-| ![](media/shapes/hexagon-horizontal.svg)                                                                                   | `hexagonHorizontal` | Pointed sides; `sideAngle`.                                                                    |
-| ![](media/shapes/octagon-vertical.svg)                                                                                     | `octagonVertical`   | `yOffset` and `sideAngle`.                                                                     |
+| Sample                                                                                                      | `drawFunc`          | What it draws                                                                                              |
+| ----------------------------------------------------------------------------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| ![](media/shapes/circle.svg) ![](media/shapes/oval.svg)                                                     | `ellipse`           | A circle when width equals height; leave `rectWidth` unset to grow wider with longer refs.                 |
+| ![](media/shapes/rounded-rectangle.svg)                                                                     | `roundedRectangle`  | A rectangle with rounded corners (`radius`, default 2).                                                    |
+| ![](media/shapes/pill.svg)                                                                                  | `pill`              | A stadium / capsule: straight sides with fully rounded ends.                                               |
+| ![](media/shapes/diamond.svg)                                                                               | `diamond`           | A diamond (square rotated on its point).                                                                   |
+| ![](media/shapes/triangle-down.svg)                                                                         | `triangle`          | A triangle; set `pointUp` to flip which way the tip faces.                                                 |
+| ![](media/shapes/trapezoid-down.svg) ![](media/shapes/trapezoid-up.svg)                                     | `trapezoid`         | A trapezoid; `shortSideUp` picks which base is shorter, `sideAngle` how steep the sides lean.              |
+| ![](media/shapes/escutcheon-down.svg)                                                                       | `escutcheon`        | A shield with a curved bottom tip; raise `yOffset` for a deeper point.                                     |
+| ![](media/shapes/fishhead-down.svg)                                                                         | `fishhead`          | A fishhead / arrowhead plaque; set `pointUp` to flip the tip.                                              |
+| ![](media/shapes/pentagon-up.svg) ![](media/shapes/home-plate-down.svg) ![](media/shapes/home-plate-up.svg) | `pentagon`          | A five-sided shield. Lean the sides with `sideAngle`, or set it to `0` for a home-plate shape; `pointUp` flips the flat vs pointed end. |
+| ![](media/shapes/hexagon-vertical.svg)                                                                      | `hexagonVertical`   | A hexagon with points on top and bottom; `yOffset` controls how deep those points are.                     |
+| ![](media/shapes/hexagon-horizontal.svg)                                                                    | `hexagonHorizontal` | A hexagon with points on the left and right; `sideAngle` controls how sharp those side points are.         |
+| ![](media/shapes/octagon-vertical.svg)                                                                      | `octagonVertical`   | An octagon; combine `yOffset` and `sideAngle` to shape the cut corners.                                    |
 
-Banners are not a `drawFunc`. Set the separate `banners` field on the shield definition (see [Banners](#banners) below). Example: ![](media/shapes/bannered-pill.svg)
+Want labels above a shield (ALT, TRK, and so on)? That is the separate `banners` field, not a `drawFunc` (see [Banners](#banners)). Example: ![](media/shapes/bannered-pill.svg)
 
 #### JavaScript helper functions
 
