@@ -372,9 +372,9 @@ Omit for variable width (grows with the ref, clamped between the library min/max
 
 Single corner radius for `roundedRectangle`, `diamond`, `triangle`, trapezoids, hex/octagon, and similar.
 
-| ![](media/shapes/param-radius-0.svg) | ![](media/shapes/param-radius-8.svg) |
+| ![](media/shapes/param-radius-0.svg) | ![](media/shapes/param-radius-6.svg) |
 | ------------------------------------ | ------------------------------------ |
-| `radius: 0`                          | `radius: 8`                          |
+| `radius: 0`                          | `radius: 6`                          |
 
 ##### `radius1` / `radius2`
 
@@ -498,8 +498,6 @@ These recolor **sprite** blanks (`spriteBlank`), not drawn `shapeBlank` shapes. 
   padding: { left: 8, right: 8, top: 10, bottom: 12 },
 }
 ```
-
-Sample shields in this section are drawn on Americana’s land cream (`hsl(30, 44%, 96%)`) so the artwork reads clearly against GitHub’s white page.
 
 ### Custom shield graphics
 

@@ -400,13 +400,13 @@ const paramSamples: Sample[] = [
     ),
   },
   {
-    file: "param-radius-8.svg",
-    network: "p:rad8",
+    file: "param-radius-6.svg",
+    network: "p:rad6",
     ref: "22",
     def: shape(
       "roundedRectangle",
-      { fillColor: fill, strokeColor: stroke, radius: 8 },
-      { textLayout: roundedRectTextConstraint(8) }
+      { fillColor: fill, strokeColor: stroke, radius: 6 },
+      { textLayout: roundedRectTextConstraint(6) }
     ),
   },
 
