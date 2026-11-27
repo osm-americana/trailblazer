@@ -35,6 +35,40 @@ import {
   type ShapeBlankParams,
 } from "../src/index.js";
 import { HeadlessGraphicsFactory } from "../src/headless_graphics.js";
+import type { Bounds } from "../src/types.js";
+
+/**
+ * node-canvas rejects CSS font-stretch `condensed` and falls back to 10px.
+ * Strip it only in this docs script so library `shieldFont` stays unchanged
+ * for browser / map clients.
+ */
+class SampleGraphicsFactory extends HeadlessGraphicsFactory {
+  createGraphics(bounds: Bounds): CanvasRenderingContext2D {
+    const ctx = super.createGraphics(bounds);
+    const desc = Object.getOwnPropertyDescriptor(
+      Object.getPrototypeOf(ctx),
+      "font"
+    );
+    if (desc?.set && desc.get) {
+      Object.defineProperty(ctx, "font", {
+        configurable: true,
+        enumerable: true,
+        get() {
+          return desc.get!.call(this);
+        },
+        set(value: string) {
+          desc.set!.call(
+            this,
+            typeof value === "string"
+              ? value.replace(/^\s*condensed\s+/i, "")
+              : value
+          );
+        },
+      });
+    }
+    return ctx;
+  }
+}
 
 const outDir = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -165,11 +199,12 @@ function shape(
   return {
     shapeBlank: { drawFunc, params },
     textLayout: textLayout ?? textConstraint("rect"),
+    // Keep horizontal padding within library variable-width slack (px(2)).
     padding: padding ?? {
-      left: 3,
-      right: 3,
-      top: 3,
-      bottom: 3,
+      left: 1,
+      right: 1,
+      top: 2,
+      bottom: 2,
     },
     textColor: textColor ?? text,
     ...rest,
@@ -854,8 +889,8 @@ async function renderGroup(
   const renderer = new ShieldRenderer(spec, routeParser)
     .graphicsFactory(
       format === "svg"
-        ? new HeadlessGraphicsFactory("svg")
-        : new HeadlessGraphicsFactory()
+        ? new SampleGraphicsFactory("svg")
+        : new SampleGraphicsFactory()
     )
     .renderOnRepository(repo);
 

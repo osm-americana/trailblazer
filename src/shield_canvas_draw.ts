@@ -29,10 +29,9 @@ export function computeWidth(
   let tangent = Math.tan(sideAngle);
 
   if (rectWidth == null) {
-    // Side slack for padding + stroke so multi-digit refs aren't flush.
     let shieldWidth =
       ShieldText.calculateTextWidth(r, ref, r.px(genericShieldFontSize)) +
-      r.px(4);
+      r.px(2);
     let minWidth = r.px(minGenericShieldWidth);
 
     //Shape-specific width adjustments

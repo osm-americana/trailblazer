@@ -3,9 +3,8 @@ import type { StyleImage } from "maplibre-gl";
 import rgba from "color-rgba";
 
 const defaultFontFamily = '"sans-serif-condensed", "Arial Narrow", sans-serif';
-// Omit font-stretch: node-canvas rejects `condensed` and falls back to 10px.
 export const shieldFont = (size: number, fontFamily: string) =>
-  `500 ${size}px ${fontFamily || defaultFontFamily}`;
+  `condensed 500 ${size}px ${fontFamily || defaultFontFamily}`;
 
 //If a computed shield font size is below this value, choose a wider shield if possible
 export const fontSizeThreshold = 11.8;
