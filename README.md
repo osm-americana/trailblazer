@@ -202,7 +202,7 @@ You should create one definition entry for each network. The entry key must matc
 
 ![Bannered routes near Downington, PA](https://wiki.openstreetmap.org/w/images/f/f8/Downington_bannered_routes_Americana.png)
 
-- **`bannerMap`**: a map of network-to-banner arrays listing networks that should have the same style but with specified banners.
+- **`bannerMap`**: map other network IDs onto this definition with their own banner labels. See [Sharing bannered networks with `bannerMap`](#sharing-bannered-networks-with-bannermap).
 - **`bannerTextColor`**: specify the color of the banner text.
 - **`bannerTextHaloColor`**: specify the color of the banner knockout halo.
 - **`textLayout`**: specify how text should be inscribed within the padded bounds of the shield. The text will be drawn at the maximum size allowed by this constraint. See the [text layout functions](#text-layout-functions) section for text layout options.
@@ -212,6 +212,35 @@ You should create one definition entry for each network. The entry key must matc
 - **`refsByName`**: specify that a `name` with the specified key should be treated as a `ref` with the specified value.
 - **`ref`**: specify that all shields in this network should be drawn with the specified `ref` value.
 - **`overrideByName`**: specify that particular `name` should use a specific **`spriteBlank`** which differs from the rest of the network.
+
+### Sharing bannered networks with `bannerMap`
+
+Many routes are bannered variants of a base network—truck, alternate, bypass, business, and so on. Those variants usually share the same shield artwork and layout; only the labels above the shield differ. Instead of copying the full definition for every variant, put a **`bannerMap`** on the base network:
+
+```json
+"US:TX": {
+  "shapeBlank": {
+    "drawFunc": "roundedRectangle",
+    "params": {
+      "fillColor": "white",
+      "strokeColor": "black",
+      "radius": 2
+    }
+  },
+  "textColor": "black",
+  "bannerMap": {
+    "US:TX:Truck": ["TRK"],
+    "US:TX:Alternate": ["ALT"],
+    "US:TX:Truck:Bypass": ["TRK", "BYP"]
+  }
+}
+```
+
+When the shield specification loads, Trailblazer expands each `bannerMap` entry into its own network definition: a copy of the parent with **`banners`** set to the listed labels. The parent network itself is unchanged (it only gets banners if it also sets **`banners`**).
+
+- Keys must match the encoded `network` values your style uses for those routes.
+- Values are the same short strings as **`banners`** (typically up to 4 characters), drawn from top to bottom.
+- This is equivalent to separate network entries that each call `banneredShield` / set **`banners`**, but keeps the shared artwork and layout in one place.
 
 ### Handling special case networks
 

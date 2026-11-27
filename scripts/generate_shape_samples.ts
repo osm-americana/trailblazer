@@ -364,7 +364,10 @@ const paramSamples: Sample[] = [
     def: shape(
       "roundedRectangle",
       { fillColor: fill, strokeColor: stroke, radius: 3 },
-      { textLayout: roundedRectTextConstraint(3) }
+      {
+        textLayout: roundedRectTextConstraint(3),
+        padding: { left: 5, right: 5, top: 3, bottom: 3 },
+      }
     ),
   },
   {
@@ -637,42 +640,19 @@ const paramSamples: Sample[] = [
     ),
   },
 
-  // sideAngle — horizontal hexagon
+  // sideAngle — horizontal hexagon (use helper padding; large angles need
+  // room for the ref once font size is honored in SVG).
   {
     file: "param-sideangle-hexh-15.svg",
     network: "p:saHex15",
     ref: "10",
-    def: shape(
-      "hexagonHorizontal",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        sideAngle: deg(15),
-        radius: 2,
-      },
-      {
-        textLayout: textConstraint("ellipse"),
-        padding: { left: 8, right: 8, top: 3, bottom: 3 },
-      }
-    ),
+    def: hexagonHorizontalShield(15, fill, stroke, text, 2, undefined!),
   },
   {
     file: "param-sideangle-hexh-40.svg",
     network: "p:saHex40",
     ref: "10",
-    def: shape(
-      "hexagonHorizontal",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        sideAngle: deg(40),
-        radius: 2,
-      },
-      {
-        textLayout: textConstraint("ellipse"),
-        padding: { left: 14, right: 14, top: 3, bottom: 3 },
-      }
-    ),
+    def: hexagonHorizontalShield(40, fill, stroke, text, 2, undefined!),
   },
 
   // sideAngle — pentagon with slanted sides
