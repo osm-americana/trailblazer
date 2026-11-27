@@ -343,29 +343,92 @@ The supported text constraints are:
 
 ### Defining drawn shield shapes
 
-If `shapeBlank` is specified, the shield is drawn as a vector shape. Set `drawFunc` to one of the built-in names below and pass a `params` object. The typed helpers in `@americana/trailblazer` (`circleShield`, `pillShield`, and so on) are optional convenience wrappers that fill in padding and text layout for common cases.
+If `shapeBlank` is specified, the shield is drawn as a vector shape. In JSON you only set `drawFunc` and a `params` object (plus normal shield fields like `padding` and `textLayout`):
 
-Samples below were rendered with those helpers (`npm run docs:shape-samples`).
+```json
+"shapeBlank": {
+  "drawFunc": "roundedRectangle",
+  "params": {
+    "fillColor": "white",
+    "strokeColor": "black",
+    "radius": 2
+  }
+}
+```
 
-| Sample                                  | `drawFunc`           | Helper                                              | Notes                                                                                         |
-| --------------------------------------- | -------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| ![](media/shapes/circle.svg)            | `ellipse`            | `circleShield`                                      | Fixed square bounds (circle).                                                                 |
-| ![](media/shapes/oval.svg)              | `ellipse`            | `ovalShield`                                        | Omit `rectWidth` for variable width.                                                          |
-| ![](media/shapes/rounded-rectangle.svg) | `roundedRectangle`   | `roundedRectShield`                                 | Corner `radius` (default 2).                                                                  |
-| ![](media/shapes/pill.svg)              | `pill`               | `pillShield`                                        | Capsule ends.                                                                                 |
-| ![](media/shapes/diamond.svg)           | `diamond`            | `diamondShield`                                     |                                                                                               |
-| ![](media/shapes/triangle-down.svg)     | `triangle`           | `triangleDownShield`                                | `pointUp: false`.                                                                             |
-| ![](media/shapes/trapezoid-down.svg)    | `trapezoid`          | `trapezoidDownShield`                               | Short side down; helpers take `sideAngle` in **degrees**.                                     |
-| ![](media/shapes/trapezoid-up.svg)      | `trapezoid`          | `trapezoidUpShield`                                 | Short side up (`shortSideUp: true`).                                                          |
-| ![](media/shapes/escutcheon-down.svg)   | `escutcheon`         | `escutcheonDownShield`                              | Curved bottom; `yOffset` sets how deep the point is.                                          |
-| ![](media/shapes/fishhead-down.svg)     | `fishhead`           | `fishheadDownShield`                                |                                                                                               |
-| ![](media/shapes/pentagon-up.svg)       | `pentagon`           | `pentagonUpShield`                                  | Plain pointed-up pentagon; `yOffset`, `sideAngle`, `radius1`, `radius2`.                      |
-| ![](media/shapes/home-plate-down.svg)   | `pentagon`           | `homePlateDownShield`                               | Home-plate variant of `pentagon` (`sideAngle: 0`, point down).                                |
-| ![](media/shapes/home-plate-up.svg)     | `pentagon`           | `homePlateUpShield`                                 | Home-plate variant of `pentagon` (`sideAngle: 0`, point up).                                  |
-| ![](media/shapes/hexagon-vertical.svg)  | `hexagonVertical`    | `hexagonVerticalShield`                             | Pointed top and bottom; `yOffset`.                                                            |
-| ![](media/shapes/hexagon-horizontal.svg)| `hexagonHorizontal`  | `hexagonHorizontalShield`                           | Pointed sides; `sideAngle` in degrees on the helper.                                          |
-| ![](media/shapes/octagon-vertical.svg)  | `octagonVertical`    | `octagonVerticalShield`                             | `yOffset` and `sideAngle`.                                                                    |
-| ![](media/shapes/bannered-pill.svg)     | _(any)_              | `banneredShield`                                    | Wraps another definition and adds one or more banner strings above the shield.                |
+Samples below (`npm run docs:shape-samples`) show each built-in `drawFunc`. One `drawFunc` can produce several looks via `params` (for example `pentagon` covers both a plain shield and a home plate). Angles in `params.sideAngle` are **radians**.
+
+| Sample                                                                                                                     | `drawFunc`          | Notes                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------- |
+| ![](media/shapes/circle.svg) ![](media/shapes/oval.svg)                                                                    | `ellipse`           | Fixed `rectWidth` → circle; omit `rectWidth` for a variable-width oval.                        |
+| ![](media/shapes/rounded-rectangle.svg)                                                                                    | `roundedRectangle`  | Corner `radius` (default 2).                                                                   |
+| ![](media/shapes/pill.svg)                                                                                                 | `pill`              | Capsule ends.                                                                                  |
+| ![](media/shapes/diamond.svg)                                                                                              | `diamond`           |                                                                                                |
+| ![](media/shapes/triangle-down.svg)                                                                                        | `triangle`          | `pointUp` selects orientation.                                                                 |
+| ![](media/shapes/trapezoid-down.svg) ![](media/shapes/trapezoid-up.svg)                                                    | `trapezoid`         | `shortSideUp` selects orientation; `sideAngle` leans the sides.                                |
+| ![](media/shapes/escutcheon-down.svg)                                                                                      | `escutcheon`        | Curved bottom; `yOffset` sets how deep the point is.                                           |
+| ![](media/shapes/fishhead-down.svg)                                                                                        | `fishhead`          | `pointUp` selects orientation.                                                                 |
+| ![](media/shapes/pentagon-up.svg) ![](media/shapes/home-plate-down.svg) ![](media/shapes/home-plate-up.svg)                | `pentagon`          | `yOffset`, `sideAngle`, `radius1`, `radius2`; `sideAngle: 0` + `pointUp` → home-plate look.    |
+| ![](media/shapes/hexagon-vertical.svg)                                                                                     | `hexagonVertical`   | Pointed top and bottom; `yOffset`.                                                             |
+| ![](media/shapes/hexagon-horizontal.svg)                                                                                   | `hexagonHorizontal` | Pointed sides; `sideAngle`.                                                                    |
+| ![](media/shapes/octagon-vertical.svg)                                                                                     | `octagonVertical`   | `yOffset` and `sideAngle`.                                                                     |
+
+Banners are not a `drawFunc`—set the separate `banners` field on the shield definition (see [Banners](#banners) below). Example: ![](media/shapes/bannered-pill.svg)
+
+#### JavaScript helper functions
+
+If you build shield definitions in JavaScript or TypeScript (as OSM Americana does), the `*Shield` helpers return a full network definition—`shapeBlank`, `padding`, `textLayout`, and `textColor`—so you do not have to spell those out by hand. They are not part of the JSON schema; calling a helper just produces ordinary definition objects.
+
+| Helper                     | `drawFunc`          | Notes                                              |
+| -------------------------- | ------------------- | -------------------------------------------------- |
+| `circleShield`             | `ellipse`           | Fixed width 20 (circle).                           |
+| `ovalShield`               | `ellipse`           | Optional variable `rectWidth`.                     |
+| `roundedRectShield`        | `roundedRectangle`  |                                                    |
+| `pillShield`               | `pill`              |                                                    |
+| `diamondShield`            | `diamond`           |                                                    |
+| `triangleDownShield`       | `triangle`          | `pointUp: false`.                                  |
+| `trapezoidDownShield`      | `trapezoid`         | Short side down; `sideAngle` in **degrees**.       |
+| `trapezoidUpShield`        | `trapezoid`         | Short side up; `sideAngle` in **degrees**.         |
+| `escutcheonDownShield`     | `escutcheon`        |                                                    |
+| `fishheadDownShield`       | `fishhead`          |                                                    |
+| `pentagonUpShield`         | `pentagon`          | Point up; `sideAngle` in **degrees**.              |
+| `homePlateDownShield`      | `pentagon`          | `sideAngle: 0`, point down.                        |
+| `homePlateUpShield`        | `pentagon`          | `sideAngle: 0`, point up.                          |
+| `hexagonVerticalShield`    | `hexagonVertical`   |                                                    |
+| `hexagonHorizontalShield`  | `hexagonHorizontal` | `sideAngle` in **degrees**.                        |
+| `octagonVerticalShield`    | `octagonVertical`   | `sideAngle` in **degrees**.                        |
+| `banneredShield`           | _(same as base)_    | Copies a definition and sets `banners`.            |
+| `paBeltShield`             | `paBelt`            | Custom graphic (see below).                        |
+| `bransonRouteShield`       | `branson`           | Custom graphic (see below).                        |
+
+Example—this helper call:
+
+```js
+import { roundedRectShield } from "@americana/trailblazer";
+
+const def = roundedRectShield("#ffffff", "#000000", "#000000", undefined, 2);
+```
+
+produces the same definition object you would write in JSON as:
+
+```json
+{
+  "shapeBlank": {
+    "drawFunc": "roundedRectangle",
+    "params": {
+      "fillColor": "#ffffff",
+      "strokeColor": "#000000",
+      "radius": 2
+    }
+  },
+  "textLayout": {
+    "constraintFunc": "roundedRect",
+    "options": { "radius": 2 }
+  },
+  "padding": { "left": 3, "right": 3, "top": 3, "bottom": 3 },
+  "textColor": "#000000"
+}
+```
 
 #### `shapeBlank.params` options
 
@@ -409,7 +472,7 @@ Single corner radius for `roundedRectangle`, `diamond`, `triangle`, trapezoids, 
 
 ##### `radius1` / `radius2`
 
-On `pentagon` (including home-plate helpers): `radius1` is the pointed end, `radius2` is the flat end.
+On `pentagon` (including home-plate style with `sideAngle: 0`): `radius1` is the pointed end, `radius2` is the flat end.
 
 | ![](media/shapes/param-radius1-sharp.svg) | ![](media/shapes/param-radius1-round.svg) |
 | ----------------------------------------- | ----------------------------------------- |
@@ -443,7 +506,7 @@ Pentagon tip:
 
 ##### `sideAngle`
 
-How far the sides lean from vertical. In raw `params` this is **radians**. The `*Shield` helpers take **degrees** and convert. Used by `trapezoid`, `pentagon`, `hexagonHorizontal`, and `octagonVertical`.
+How far the sides lean from vertical (**radians** in JSON `params`). Used by `trapezoid`, `pentagon`, `hexagonHorizontal`, and `octagonVertical`.
 
 Trapezoid:
 
@@ -487,31 +550,17 @@ Trapezoid only: which base is shorter.
 | --------------------------------------------- | -------------------------------------------- |
 | `shortSideUp: false` (short side down)        | `shortSideUp: true` (short side up)          |
 
-##### Banners (`banneredShield`)
+##### Banners
 
-Not a `params` field—`banners` on the shield definition draws labels above the blank. Prefer short labels (≤3 characters) so they stay readable at shield size.
+Not a `params` field—set `banners` on the shield definition to draw short labels above the blank. Prefer ≤3 characters so they stay readable at shield size. Optional `bannerTextColor` overrides the global `options.bannerTextColor`.
 
 | ![](media/shapes/param-banners-one.svg) | ![](media/shapes/param-banners-two.svg) |
 | --------------------------------------- | --------------------------------------- |
-| `["ALT"]`                               | `["ALT", "TRK"]`                        |
-
-`banneredShield`’s third argument sets `bannerTextColor` (otherwise the global `options.bannerTextColor` is used):
+| `"banners": ["ALT"]`                    | `"banners": ["ALT", "TRK"]`             |
 
 | ![](media/shapes/param-banners-color-black.svg) | ![](media/shapes/param-banners-color-red.svg) |
 | ----------------------------------------------- | --------------------------------------------- |
 | `bannerTextColor: "#000000"`                    | `bannerTextColor: "#bf2033"`                  |
-
-Example using a helper:
-
-```ts
-import { pillShield, banneredShield } from "@americana/trailblazer";
-
-const def = banneredShield(
-  pillShield("#fff", "#000", "#000"),
-  ["ALT"],
-  "#bf2033"
-);
-```
 
 ##### `colorLighten` / `colorDarken`
 
@@ -532,12 +581,12 @@ These recolor **sprite** blanks (`spriteBlank`), not drawn `shapeBlank` shapes. 
 
 ### Custom shield graphics
 
-Besides the stock shapes, you can register a custom `drawFunc`. Bundled examples:
+Besides the stock shapes, you can register a custom `drawFunc`. Bundled examples (same JSON shape—just a different `drawFunc` name):
 
-| Sample                        | `drawFunc` / helper                | Use                                                                                                       |
-| ----------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| ![](media/shapes/pa-belt.svg) | `paBelt` via `paBeltShield`        | [Allegheny County belt](https://en.wikipedia.org/wiki/Allegheny_County_belt_system) icon (no route text). |
-| ![](media/shapes/branson.svg) | `branson` via `bransonRouteShield` | Branson, Missouri colored route plaque (no route text).                                                   |
+| Sample                        | `drawFunc` | Use                                                                                                       |
+| ----------------------------- | ---------- | --------------------------------------------------------------------------------------------------------- |
+| ![](media/shapes/pa-belt.svg) | `paBelt`   | [Allegheny County belt](https://en.wikipedia.org/wiki/Allegheny_County_belt_system) icon (no route text). |
+| ![](media/shapes/branson.svg) | `branson`  | Branson, Missouri colored route plaque (no route text).                                                   |
 
 See `src/custom_shields.ts` for how those register with `registerDrawFunction`.
 
