@@ -239,10 +239,11 @@ const catalog: Sample[] = [
     def: fishheadDownShield(fill, stroke, text, undefined!),
   },
   {
+    // Slight sideAngle so the plain pentagon reads apart from home-plate helpers.
     file: "pentagon-up.svg",
     network: "cat:pent",
     ref: "95",
-    def: pentagonUpShield(8, 0, fill, stroke, text, 2, 0, undefined!),
+    def: pentagonUpShield(8, 15, fill, stroke, text, 2, 0, undefined!),
   },
   {
     file: "home-plate-down.svg",
@@ -260,7 +261,7 @@ const catalog: Sample[] = [
     file: "hexagon-vertical.svg",
     network: "cat:hexV",
     ref: "11",
-    def: hexagonVerticalShield(6, fill, stroke, text, 2, undefined!),
+    def: hexagonVerticalShield(4, fill, stroke, text, 2, undefined!),
   },
   {
     file: "hexagon-horizontal.svg",
@@ -364,10 +365,7 @@ const paramSamples: Sample[] = [
     def: shape(
       "roundedRectangle",
       { fillColor: fill, strokeColor: stroke, radius: 3 },
-      {
-        textLayout: roundedRectTextConstraint(3),
-        padding: { left: 5, right: 5, top: 3, bottom: 3 },
-      }
+      { textLayout: roundedRectTextConstraint(3) }
     ),
   },
   {
@@ -418,85 +416,25 @@ const paramSamples: Sample[] = [
     file: "param-radius1-sharp.svg",
     network: "p:r1sharp",
     ref: "9",
-    def: shape(
-      "pentagon",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        pointUp: false,
-        yOffset: 10,
-        sideAngle: 0,
-        radius1: 0,
-        radius2: 4,
-      },
-      {
-        textLayout: roundedRectTextConstraint(4),
-        padding: { left: 3, right: 3, top: 3, bottom: 10 },
-      }
-    ),
+    def: homePlateDownShield(10, fill, stroke, text, 0, 4, undefined!),
   },
   {
     file: "param-radius1-round.svg",
     network: "p:r1round",
     ref: "9",
-    def: shape(
-      "pentagon",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        pointUp: false,
-        yOffset: 10,
-        sideAngle: 0,
-        radius1: 8,
-        radius2: 4,
-      },
-      {
-        textLayout: roundedRectTextConstraint(4),
-        padding: { left: 3, right: 3, top: 3, bottom: 10 },
-      }
-    ),
+    def: homePlateDownShield(10, fill, stroke, text, 8, 4, undefined!),
   },
   {
     file: "param-radius2-sharp.svg",
     network: "p:r2sharp",
     ref: "9",
-    def: shape(
-      "pentagon",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        pointUp: false,
-        yOffset: 10,
-        sideAngle: 0,
-        radius1: 4,
-        radius2: 0,
-      },
-      {
-        textLayout: roundedRectTextConstraint(0),
-        padding: { left: 3, right: 3, top: 3, bottom: 10 },
-      }
-    ),
+    def: homePlateDownShield(10, fill, stroke, text, 2, 0, undefined!),
   },
   {
     file: "param-radius2-round.svg",
     network: "p:r2round",
     ref: "9",
-    def: shape(
-      "pentagon",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        pointUp: false,
-        yOffset: 10,
-        sideAngle: 0,
-        radius1: 4,
-        radius2: 8,
-      },
-      {
-        textLayout: roundedRectTextConstraint(8),
-        padding: { left: 3, right: 3, top: 3, bottom: 10 },
-      }
-    ),
+    def: homePlateDownShield(10, fill, stroke, text, 2, 8, undefined!),
   },
 
   // yOffset — escutcheon
@@ -504,36 +442,17 @@ const paramSamples: Sample[] = [
     file: "param-yoffset-escutcheon-2.svg",
     network: "p:yEsc2",
     ref: "1",
-    def: shape(
-      "escutcheon",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        yOffset: 2,
-        radius: 0,
-        outlineWidth: 1,
-      },
-      { padding: { left: 3, right: 3, top: 3, bottom: 4 } }
-    ),
+    def: escutcheonDownShield(2, fill, stroke, text, 0, undefined!),
   },
   {
     file: "param-yoffset-escutcheon-14.svg",
     network: "p:yEsc14",
     ref: "1",
-    def: shape(
-      "escutcheon",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        yOffset: 14,
-        radius: 0,
-        outlineWidth: 1,
-      },
-      { padding: { left: 3, right: 3, top: 3, bottom: 10 } }
-    ),
+    def: escutcheonDownShield(14, fill, stroke, text, 0, undefined!),
   },
 
-  // yOffset — vertical hexagon
+  // yOffset — vertical hexagon (minimal padding so the ref stays readable;
+  // helpers scale top/bottom with yOffset and crush the text).
   {
     file: "param-yoffset-hexv-2.svg",
     network: "p:yHex2",
@@ -543,26 +462,25 @@ const paramSamples: Sample[] = [
       { fillColor: fill, strokeColor: stroke, yOffset: 2, radius: 2 },
       {
         textLayout: roundedRectTextConstraint(2),
-        padding: { left: 3, right: 3, top: 4, bottom: 4 },
+        padding: { left: 2, right: 2, top: 2, bottom: 2 },
       }
     ),
   },
   {
-    file: "param-yoffset-hexv-6.svg",
-    network: "p:yHex6",
+    file: "param-yoffset-hexv-4.svg",
+    network: "p:yHex4",
     ref: "6",
     def: shape(
       "hexagonVertical",
-      { fillColor: fill, strokeColor: stroke, yOffset: 6, radius: 2 },
+      { fillColor: fill, strokeColor: stroke, yOffset: 4, radius: 2 },
       {
         textLayout: roundedRectTextConstraint(2),
-        // Leave room for the pointed ends; 2*yOffset must stay under shieldSize.
-        padding: { left: 3, right: 3, top: 7, bottom: 7 },
+        padding: { left: 2, right: 2, top: 2, bottom: 2 },
       }
     ),
   },
 
-  // yOffset — pentagon tip
+  // yOffset — pentagon tip (same: keep padding tight so the ref shows)
   {
     file: "param-yoffset-pentagon-4.svg",
     network: "p:yPent4",
@@ -578,70 +496,49 @@ const paramSamples: Sample[] = [
         radius2: 0,
         pointUp: true,
       },
-      { padding: { left: 3, right: 3, top: 6, bottom: 3 } }
+      {
+        textLayout: textConstraint("rect"),
+        padding: { left: 2, right: 2, top: 2, bottom: 2 },
+      }
     ),
   },
   {
-    file: "param-yoffset-pentagon-14.svg",
-    network: "p:yPent14",
+    file: "param-yoffset-pentagon-8.svg",
+    network: "p:yPent8",
     ref: "80",
     def: shape(
       "pentagon",
       {
         fillColor: fill,
         strokeColor: stroke,
-        yOffset: 14,
+        yOffset: 8,
         sideAngle: 0,
         radius1: 2,
         radius2: 0,
         pointUp: true,
       },
-      { padding: { left: 3, right: 3, top: 12, bottom: 3 } }
+      {
+        textLayout: textConstraint("rect"),
+        padding: { left: 2, right: 2, top: 3, bottom: 2 },
+      }
     ),
   },
 
-  // sideAngle — trapezoid (radians in params)
+  // sideAngle — trapezoid
   {
     file: "param-sideangle-trap-5.svg",
     network: "p:saTrap5",
     ref: "30",
-    def: shape(
-      "trapezoid",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        sideAngle: deg(5),
-        radius: 0,
-        shortSideUp: false,
-      },
-      {
-        textLayout: roundedRectTextConstraint(0),
-        padding: { left: 6, right: 6, top: 3, bottom: 4 },
-      }
-    ),
+    def: trapezoidDownShield(5, fill, stroke, text, 0, undefined!),
   },
   {
     file: "param-sideangle-trap-15.svg",
     network: "p:saTrap15",
     ref: "30",
-    def: shape(
-      "trapezoid",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        sideAngle: deg(15),
-        radius: 0,
-        shortSideUp: false,
-      },
-      {
-        textLayout: roundedRectTextConstraint(0),
-        padding: { left: 8, right: 8, top: 3, bottom: 4 },
-      }
-    ),
+    def: trapezoidDownShield(15, fill, stroke, text, 0, undefined!),
   },
 
-  // sideAngle — horizontal hexagon (use helper padding; large angles need
-  // room for the ref once font size is honored in SVG).
+  // sideAngle — horizontal hexagon
   {
     file: "param-sideangle-hexh-15.svg",
     network: "p:saHex15",
@@ -660,37 +557,13 @@ const paramSamples: Sample[] = [
     file: "param-sideangle-pentagon-0.svg",
     network: "p:saPent0",
     ref: "70",
-    def: shape(
-      "pentagon",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        yOffset: 8,
-        sideAngle: deg(0),
-        radius1: 2,
-        radius2: 0,
-        pointUp: true,
-      },
-      { padding: { left: 3, right: 3, top: 8, bottom: 3 } }
-    ),
+    def: pentagonUpShield(8, 0, fill, stroke, text, 2, 0, undefined!),
   },
   {
     file: "param-sideangle-pentagon-20.svg",
     network: "p:saPent20",
     ref: "70",
-    def: shape(
-      "pentagon",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        yOffset: 8,
-        sideAngle: deg(20),
-        radius1: 2,
-        radius2: 0,
-        pointUp: true,
-      },
-      { padding: { left: 10, right: 10, top: 8, bottom: 3 } }
-    ),
+    def: pentagonUpShield(8, 20, fill, stroke, text, 2, 0, undefined!),
   },
 
   // pointUp — triangle
@@ -698,19 +571,7 @@ const paramSamples: Sample[] = [
     file: "param-pointup-triangle-false.svg",
     network: "p:ptTriF",
     ref: "4",
-    def: shape(
-      "triangle",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        pointUp: false,
-        radius: 3,
-      },
-      {
-        textLayout: textConstraint("triangleDown"),
-        padding: { left: 2, right: 2, top: 6, bottom: 2 },
-      }
-    ),
+    def: triangleDownShield(fill, stroke, text, 3, undefined!),
   },
   {
     file: "param-pointup-triangle-true.svg",
@@ -725,10 +586,9 @@ const paramSamples: Sample[] = [
         radius: 3,
       },
       {
-        // triangleDown constraint grows from the top tip; for point-up use a
-        // rect constraint and pad the pointed end so the ref sits in the base.
+        // No point-up helper; pad the tip so the ref sits in the wider base.
         textLayout: textConstraint("rect"),
-        padding: { left: 2, right: 2, top: 10, bottom: 2 },
+        padding: { left: 0, right: 0, top: 5, bottom: 1 },
       }
     ),
   },
@@ -738,19 +598,7 @@ const paramSamples: Sample[] = [
     file: "param-pointup-fishhead-false.svg",
     network: "p:ptFishF",
     ref: "16",
-    def: shape(
-      "fishhead",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        pointUp: false,
-        outlineWidth: 1,
-      },
-      {
-        textLayout: textConstraint("ellipse"),
-        padding: { left: 2, right: 2, top: 2, bottom: 8 },
-      }
-    ),
+    def: fishheadDownShield(fill, stroke, text, undefined!),
   },
   {
     file: "param-pointup-fishhead-true.svg",
@@ -766,7 +614,8 @@ const paramSamples: Sample[] = [
       },
       {
         textLayout: textConstraint("ellipse"),
-        padding: { left: 2, right: 2, top: 8, bottom: 2 },
+        // Mirror fishheadDownShield padding about the tip.
+        padding: { left: 1, right: 1, top: 5, bottom: 1 },
       }
     ),
   },
@@ -776,39 +625,13 @@ const paramSamples: Sample[] = [
     file: "param-shortsideup-false.svg",
     network: "p:ssuF",
     ref: "50",
-    def: shape(
-      "trapezoid",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        sideAngle: deg(18),
-        radius: 0,
-        shortSideUp: false,
-      },
-      {
-        textLayout: roundedRectTextConstraint(0),
-        padding: { left: 10, right: 10, top: 3, bottom: 4 },
-      }
-    ),
+    def: trapezoidDownShield(18, fill, stroke, text, 0, undefined!),
   },
   {
     file: "param-shortsideup-true.svg",
     network: "p:ssuT",
     ref: "50",
-    def: shape(
-      "trapezoid",
-      {
-        fillColor: fill,
-        strokeColor: stroke,
-        sideAngle: deg(18),
-        radius: 0,
-        shortSideUp: true,
-      },
-      {
-        textLayout: roundedRectTextConstraint(0),
-        padding: { left: 10, right: 10, top: 4, bottom: 3 },
-      }
-    ),
+    def: trapezoidUpShield(18, fill, stroke, text, 0, undefined!),
   },
 
   // banners (multi) — keep labels ≤3 chars so they stay readable at sample size

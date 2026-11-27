@@ -343,27 +343,29 @@ The supported text constraints are:
 
 ### Defining drawn shield shapes
 
-If `shapeBlank` is specified, the shield is drawn as a vector shape. Set `drawFunc` to one of the built-in names below and pass a `params` object. Prefer the typed helpers in `@americana/trailblazer` (`circleShield`, `pillShield`, and so on)—they fill in padding and text layout for each shape.
+If `shapeBlank` is specified, the shield is drawn as a vector shape. Set `drawFunc` to one of the built-in names below and pass a `params` object. The typed helpers in `@americana/trailblazer` (`circleShield`, `pillShield`, and so on) are optional convenience wrappers that fill in padding and text layout for common cases.
 
-Samples below were rendered with those helpers (`npx tsx scripts/generate_shape_samples.ts`).
+Samples below were rendered with those helpers (`npm run docs:shape-samples`).
 
-| Sample                                                                    | `drawFunc` / helper                                         | Notes                                                                       |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------- |
-| ![](media/shapes/circle.svg)                                              | `ellipse` via `circleShield`                                | Fixed square bounds (circle).                                               |
-| ![](media/shapes/oval.svg)                                                | `ellipse` via `ovalShield`                                  | Omit `rectWidth` for variable width.                                        |
-| ![](media/shapes/rounded-rectangle.svg)                                   | `roundedRectangle` via `roundedRectShield`                  | Corner `radius` (default 2).                                                |
-| ![](media/shapes/pill.svg)                                                | `pill` via `pillShield`                                     | Capsule ends.                                                               |
-| ![](media/shapes/diamond.svg)                                             | `diamond` via `diamondShield`                               |                                                                             |
-| ![](media/shapes/triangle-down.svg)                                       | `triangle` via `triangleDownShield`                         | `pointUp: false`.                                                           |
-| ![](media/shapes/trapezoid-down.svg) ![](media/shapes/trapezoid-up.svg)   | `trapezoid` via `trapezoidDownShield` / `trapezoidUpShield` | `shortSideUp` selects orientation; helpers take `sideAngle` in **degrees**. |
-| ![](media/shapes/escutcheon-down.svg)                                     | `escutcheon` via `escutcheonDownShield`                     | Curved bottom; `yOffset` sets how deep the point is.                        |
-| ![](media/shapes/fishhead-down.svg)                                       | `fishhead` via `fishheadDownShield`                         |                                                                             |
-| ![](media/shapes/pentagon-up.svg)                                         | `pentagon` via `pentagonUpShield`                           | Point up; `yOffset`, `sideAngle`, `radius1`, `radius2`.                     |
-| ![](media/shapes/home-plate-down.svg) ![](media/shapes/home-plate-up.svg) | `pentagon` via `homePlateDownShield` / `homePlateUpShield`  | Home-plate variant (`sideAngle: 0`, `pointUp` toggles).                     |
-| ![](media/shapes/hexagon-vertical.svg)                                    | `hexagonVertical` via `hexagonVerticalShield`               | Pointed top and bottom; `yOffset`.                                          |
-| ![](media/shapes/hexagon-horizontal.svg)                                  | `hexagonHorizontal` via `hexagonHorizontalShield`           | Pointed sides; `sideAngle` in degrees on the helper.                        |
-| ![](media/shapes/octagon-vertical.svg)                                    | `octagonVertical` via `octagonVerticalShield`               | `yOffset` and `sideAngle`.                                                  |
-| ![](media/shapes/bannered-pill.svg)                                       | any base + `banneredShield`                                 | Adds one or more banner strings above the shield.                           |
+| Sample                                  | `drawFunc`           | Helper                                              | Notes                                                                                         |
+| --------------------------------------- | -------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| ![](media/shapes/circle.svg)            | `ellipse`            | `circleShield`                                      | Fixed square bounds (circle).                                                                 |
+| ![](media/shapes/oval.svg)              | `ellipse`            | `ovalShield`                                        | Omit `rectWidth` for variable width.                                                          |
+| ![](media/shapes/rounded-rectangle.svg) | `roundedRectangle`   | `roundedRectShield`                                 | Corner `radius` (default 2).                                                                  |
+| ![](media/shapes/pill.svg)              | `pill`               | `pillShield`                                        | Capsule ends.                                                                                 |
+| ![](media/shapes/diamond.svg)           | `diamond`            | `diamondShield`                                     |                                                                                               |
+| ![](media/shapes/triangle-down.svg)     | `triangle`           | `triangleDownShield`                                | `pointUp: false`.                                                                             |
+| ![](media/shapes/trapezoid-down.svg)    | `trapezoid`          | `trapezoidDownShield`                               | Short side down; helpers take `sideAngle` in **degrees**.                                     |
+| ![](media/shapes/trapezoid-up.svg)      | `trapezoid`          | `trapezoidUpShield`                                 | Short side up (`shortSideUp: true`).                                                          |
+| ![](media/shapes/escutcheon-down.svg)   | `escutcheon`         | `escutcheonDownShield`                              | Curved bottom; `yOffset` sets how deep the point is.                                          |
+| ![](media/shapes/fishhead-down.svg)     | `fishhead`           | `fishheadDownShield`                                |                                                                                               |
+| ![](media/shapes/pentagon-up.svg)       | `pentagon`           | `pentagonUpShield`                                  | Plain pointed-up pentagon; `yOffset`, `sideAngle`, `radius1`, `radius2`.                      |
+| ![](media/shapes/home-plate-down.svg)   | `pentagon`           | `homePlateDownShield`                               | Home-plate variant of `pentagon` (`sideAngle: 0`, point down).                                |
+| ![](media/shapes/home-plate-up.svg)     | `pentagon`           | `homePlateUpShield`                                 | Home-plate variant of `pentagon` (`sideAngle: 0`, point up).                                  |
+| ![](media/shapes/hexagon-vertical.svg)  | `hexagonVertical`    | `hexagonVerticalShield`                             | Pointed top and bottom; `yOffset`.                                                            |
+| ![](media/shapes/hexagon-horizontal.svg)| `hexagonHorizontal`  | `hexagonHorizontalShield`                           | Pointed sides; `sideAngle` in degrees on the helper.                                          |
+| ![](media/shapes/octagon-vertical.svg)  | `octagonVertical`    | `octagonVerticalShield`                             | `yOffset` and `sideAngle`.                                                                    |
+| ![](media/shapes/bannered-pill.svg)     | _(any)_              | `banneredShield`                                    | Wraps another definition and adds one or more banner strings above the shield.                |
 
 #### `shapeBlank.params` options
 
@@ -429,15 +431,15 @@ Escutcheon:
 
 Vertical hexagon:
 
-| ![](media/shapes/param-yoffset-hexv-2.svg) | ![](media/shapes/param-yoffset-hexv-6.svg) |
+| ![](media/shapes/param-yoffset-hexv-2.svg) | ![](media/shapes/param-yoffset-hexv-4.svg) |
 | ------------------------------------------ | ------------------------------------------ |
-| `yOffset: 2`                               | `yOffset: 6`                               |
+| `yOffset: 2`                               | `yOffset: 4`                               |
 
 Pentagon tip:
 
-| ![](media/shapes/param-yoffset-pentagon-4.svg) | ![](media/shapes/param-yoffset-pentagon-14.svg) |
-| ---------------------------------------------- | ----------------------------------------------- |
-| `yOffset: 4`                                   | `yOffset: 14`                                   |
+| ![](media/shapes/param-yoffset-pentagon-4.svg) | ![](media/shapes/param-yoffset-pentagon-8.svg) |
+| ---------------------------------------------- | ---------------------------------------------- |
+| `yOffset: 4`                                   | `yOffset: 8`                                   |
 
 ##### `sideAngle`
 
