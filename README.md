@@ -588,7 +588,7 @@ Besides the stock shapes, you can register a custom `drawFunc`. Bundled examples
 | ![](media/shapes/pa-belt.svg) | `paBelt`   | [Allegheny County belt](https://en.wikipedia.org/wiki/Allegheny_County_belt_system) icon (no route text). |
 | ![](media/shapes/branson.svg) | `branson`  | Branson, Missouri colored route plaque (no route text).                                                   |
 
-See `src/custom_shields.ts` for how those register with `registerDrawFunction`.
+See [`src/custom_shields.ts`](src/custom_shields.ts) for how those register with `registerDrawFunction`.
 
 ## Development
 
