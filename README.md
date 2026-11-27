@@ -358,20 +358,20 @@ If `shapeBlank` is specified, the shield is drawn as a vector shape. In JSON you
 
 Samples below (`npm run docs:shape-samples`) show each built-in `drawFunc`. Several looks can share one `drawFunc` by changing `params` (a home plate is just a `pentagon` with vertical sides). Where a note mentions `sideAngle`, the JSON value is in **radians**.
 
-| Sample                                                                                                      | `drawFunc`          | What it draws                                                                                              |
-| ----------------------------------------------------------------------------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| ![](media/shapes/circle.svg) ![](media/shapes/oval.svg)                                                     | `ellipse`           | A circle when width equals height; leave `rectWidth` unset to grow wider with longer refs.                 |
-| ![](media/shapes/rounded-rectangle.svg)                                                                     | `roundedRectangle`  | A rectangle with rounded corners (`radius`, default 2).                                                    |
-| ![](media/shapes/pill.svg)                                                                                  | `pill`              | A stadium / capsule: straight sides with fully rounded ends.                                               |
-| ![](media/shapes/diamond.svg)                                                                               | `diamond`           | A diamond (square rotated on its point).                                                                   |
-| ![](media/shapes/triangle-down.svg)                                                                         | `triangle`          | A triangle; set `pointUp` to flip which way the tip faces.                                                 |
-| ![](media/shapes/trapezoid-down.svg) ![](media/shapes/trapezoid-up.svg)                                     | `trapezoid`         | A trapezoid; `shortSideUp` picks which base is shorter, `sideAngle` how steep the sides lean.              |
-| ![](media/shapes/escutcheon-down.svg)                                                                       | `escutcheon`        | A shield with a curved bottom tip; raise `yOffset` for a deeper point.                                     |
-| ![](media/shapes/fishhead-down.svg)                                                                         | `fishhead`          | A fishhead / arrowhead plaque; set `pointUp` to flip the tip.                                              |
+| Sample                                                                                                      | `drawFunc`          | What it draws                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| ![](media/shapes/circle.svg) ![](media/shapes/oval.svg)                                                     | `ellipse`           | A circle when width equals height; leave `rectWidth` unset to grow wider with longer refs.                                              |
+| ![](media/shapes/rounded-rectangle.svg)                                                                     | `roundedRectangle`  | A rectangle with rounded corners (`radius`, default 2).                                                                                 |
+| ![](media/shapes/pill.svg)                                                                                  | `pill`              | A stadium / capsule: straight sides with fully rounded ends.                                                                            |
+| ![](media/shapes/diamond.svg)                                                                               | `diamond`           | A diamond (square rotated on its point).                                                                                                |
+| ![](media/shapes/triangle-down.svg)                                                                         | `triangle`          | A triangle; set `pointUp` to flip which way the tip faces.                                                                              |
+| ![](media/shapes/trapezoid-down.svg) ![](media/shapes/trapezoid-up.svg)                                     | `trapezoid`         | A trapezoid; `shortSideUp` picks which base is shorter, `sideAngle` how steep the sides lean.                                           |
+| ![](media/shapes/escutcheon-down.svg)                                                                       | `escutcheon`        | A shield with a curved bottom tip; raise `yOffset` for a deeper point.                                                                  |
+| ![](media/shapes/fishhead-down.svg)                                                                         | `fishhead`          | A fishhead / arrowhead plaque; set `pointUp` to flip the tip.                                                                           |
 | ![](media/shapes/pentagon-up.svg) ![](media/shapes/home-plate-down.svg) ![](media/shapes/home-plate-up.svg) | `pentagon`          | A five-sided shield. Lean the sides with `sideAngle`, or set it to `0` for a home-plate shape; `pointUp` flips the flat vs pointed end. |
-| ![](media/shapes/hexagon-vertical.svg)                                                                      | `hexagonVertical`   | A hexagon with points on top and bottom; `yOffset` controls how deep those points are.                     |
-| ![](media/shapes/hexagon-horizontal.svg)                                                                    | `hexagonHorizontal` | A hexagon with points on the left and right; `sideAngle` controls how sharp those side points are.         |
-| ![](media/shapes/octagon-vertical.svg)                                                                      | `octagonVertical`   | An octagon; combine `yOffset` and `sideAngle` to shape the cut corners.                                    |
+| ![](media/shapes/hexagon-vertical.svg)                                                                      | `hexagonVertical`   | A hexagon with points on top and bottom; `yOffset` controls how deep those points are.                                                  |
+| ![](media/shapes/hexagon-horizontal.svg)                                                                    | `hexagonHorizontal` | A hexagon with points on the left and right; `sideAngle` controls how sharp those side points are.                                      |
+| ![](media/shapes/octagon-vertical.svg)                                                                      | `octagonVertical`   | An octagon; combine `yOffset` and `sideAngle` to shape the cut corners.                                                                 |
 
 Want labels above a shield (ALT, TRK, and so on)? That is the separate `banners` field, not a `drawFunc` (see [Banners](#banners)). Example: ![](media/shapes/bannered-pill.svg)
 
@@ -379,27 +379,27 @@ Want labels above a shield (ALT, TRK, and so on)? That is the separate `banners`
 
 If you build shield definitions in JavaScript or TypeScript, the `*Shield` helpers return a full network definition (`shapeBlank`, `padding`, `textLayout`, and `textColor`) so you do not have to spell those out by hand. They are not part of the JSON schema; calling a helper just produces ordinary definition objects.
 
-| Helper                     | `drawFunc`          | Notes                                              |
-| -------------------------- | ------------------- | -------------------------------------------------- |
-| `circleShield`             | `ellipse`           | Fixed width 20 (circle).                           |
-| `ovalShield`               | `ellipse`           | Optional variable `rectWidth`.                     |
-| `roundedRectShield`        | `roundedRectangle`  |                                                    |
-| `pillShield`               | `pill`              |                                                    |
-| `diamondShield`            | `diamond`           |                                                    |
-| `triangleDownShield`       | `triangle`          | `pointUp: false`.                                  |
-| `trapezoidDownShield`      | `trapezoid`         | Short side down; `sideAngle` in **degrees**.       |
-| `trapezoidUpShield`        | `trapezoid`         | Short side up; `sideAngle` in **degrees**.         |
-| `escutcheonDownShield`     | `escutcheon`        |                                                    |
-| `fishheadDownShield`       | `fishhead`          |                                                    |
-| `pentagonUpShield`         | `pentagon`          | Point up; `sideAngle` in **degrees**.              |
-| `homePlateDownShield`      | `pentagon`          | `sideAngle: 0`, point down.                        |
-| `homePlateUpShield`        | `pentagon`          | `sideAngle: 0`, point up.                          |
-| `hexagonVerticalShield`    | `hexagonVertical`   |                                                    |
-| `hexagonHorizontalShield`  | `hexagonHorizontal` | `sideAngle` in **degrees**.                        |
-| `octagonVerticalShield`    | `octagonVertical`   | `sideAngle` in **degrees**.                        |
-| `banneredShield`           | _(same as base)_    | Copies a definition and sets `banners`.            |
-| `paBeltShield`             | `paBelt`            | Custom graphic (see below).                        |
-| `bransonRouteShield`       | `branson`           | Custom graphic (see below).                        |
+| Helper                    | `drawFunc`          | Notes                                        |
+| ------------------------- | ------------------- | -------------------------------------------- |
+| `circleShield`            | `ellipse`           | Fixed width 20 (circle).                     |
+| `ovalShield`              | `ellipse`           | Optional variable `rectWidth`.               |
+| `roundedRectShield`       | `roundedRectangle`  |                                              |
+| `pillShield`              | `pill`              |                                              |
+| `diamondShield`           | `diamond`           |                                              |
+| `triangleDownShield`      | `triangle`          | `pointUp: false`.                            |
+| `trapezoidDownShield`     | `trapezoid`         | Short side down; `sideAngle` in **degrees**. |
+| `trapezoidUpShield`       | `trapezoid`         | Short side up; `sideAngle` in **degrees**.   |
+| `escutcheonDownShield`    | `escutcheon`        |                                              |
+| `fishheadDownShield`      | `fishhead`          |                                              |
+| `pentagonUpShield`        | `pentagon`          | Point up; `sideAngle` in **degrees**.        |
+| `homePlateDownShield`     | `pentagon`          | `sideAngle: 0`, point down.                  |
+| `homePlateUpShield`       | `pentagon`          | `sideAngle: 0`, point up.                    |
+| `hexagonVerticalShield`   | `hexagonVertical`   |                                              |
+| `hexagonHorizontalShield` | `hexagonHorizontal` | `sideAngle` in **degrees**.                  |
+| `octagonVerticalShield`   | `octagonVertical`   | `sideAngle` in **degrees**.                  |
+| `banneredShield`          | _(same as base)_    | Copies a definition and sets `banners`.      |
+| `paBeltShield`            | `paBelt`            | Custom graphic (see below).                  |
+| `bransonRouteShield`      | `branson`           | Custom graphic (see below).                  |
 
 Example: this helper call:
 
