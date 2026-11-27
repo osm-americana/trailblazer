@@ -40,6 +40,7 @@
     "code_format:prettier": "prettier --write --list-different .",
     "clean": "shx rm -rf dist docs",
     "docs": "typedoc src/index.ts",
+    "docs:shape-samples": "tsx scripts/generate_shape_samples.ts",
     "test": "mocha",
     "test:coverage": "c8 mocha",
     "build:code": "node scripts/build.js",
@@ -68,6 +69,7 @@
   "files": [
     "dist/",
     "docs/",
+    "media/",
     "README.md"
   ],
   "engines": {

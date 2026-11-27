@@ -32,7 +32,7 @@ Rendering shields requires the following compoments:
 
 1. **Encode shield information in vector tiles**. First, your tiles must contain the information which tells the shield renderer what shields to draw. In OpenMapTiles, shield information is encoded in the [`transportation_name`](https://openmaptiles.org/schema/#transportation_name) vector tile layer with a series of attributes named `route_1`, `route_2`, etc. Each attribute contains a text string which contains all of the information needed to determine which graphic to display, including numeric route number if the shield is numbered. However, this library allows you to specify how the shield information has been encoded, and it's possible to stitch together data from multiple fields when encoding shield data.
 
-2. **Expose shield information in a style layer**. Next, route information must be exposed in a maplibre expression using [image](https://maplibre.org/maplibre-gl-js-docs/style-spec/expressions/#types-image) in a structured string containing the route information. For example, you might encode Interstate 95 as an image named `shield|US:I=95`. Normally, the image expression is used to point to pre-designated sprites in a sprite sheet, but in this case, we're pointing to a sprite which doesn't exist called `shield|US:I=95`. MapLibre asks the map's [missing style image resolver](https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#setmissingstyleimageresolver) for that ID, and the shield renderer generates the graphic just in time. As an example of how to encode shield information, see OSM Americana's [`highway_shield`](https://github.com/osm-americana/openstreetmap-americana/blob/main/src/layer/highway_shield.js) style layer.
+2. **Expose shield information in a style layer**. Next, route information must be exposed in a maplibre expression using [image](https://maplibre.org/maplibre-gl-js-docs/style-spec/expressions/#types-image) in a structured string containing the route information. For example, you might encode Interstate 95 as an image named `shield|US:I=95`. Normally, the image expression is used to point to pre-designated sprites in a sprite sheet, but in this case, we're pointing to a sprite which doesn't exist called `shield|US:I=95`. MapLibre asks the map's [missing style image resolver](https://maplibre.org/maplibre-gl-js/docs/API/classes/Map/#setmissingstyleimageresolver) for that ID, and the shield renderer generates the graphic just in time. As an example of how to encode shield information, see this [`highway_shield`](https://github.com/osm-americana/openstreetmap-americana/blob/main/src/layer/highway_shield.js) style layer.
 
 3. **Define a parser that describes how route information is encoded**. There are three parts to a route definition:
 
@@ -73,7 +73,7 @@ Rendering shields requires the following compoments:
      !/^[lrni][chimpw]n$/.test(network);
    ```
 
-5. **Create shield definitions and artwork**. The shield definition is expressed as a JSON file along with a set of sprites containing any raster artwork used for the shields. It can be generated as an object or hosted as a JSON file accessible by URL. See the next section for how to create this definition. [A premade shield definition file](https://americanamap.org/shields.json) is available for maps that have a color scheme and visual style similar to OSM Americana.
+5. **Create shield definitions and artwork**. The shield definition is expressed as a JSON file along with a set of sprites containing any raster artwork used for the shields. It can be generated as an object or hosted as a JSON file accessible by URL. See the next section for how to create this definition. [A premade shield definition file](https://americanamap.org/shields.json) is available for maps with a similar color scheme and visual style.
 
 6. **Hook up the shield generator to a maplibre-gl-js map**. Pass either the URL of the JSON shield definition or create an object in javascript code. There are two separate classes for each approach.
 
@@ -202,7 +202,7 @@ You should create one definition entry for each network. The entry key must matc
 
 ![Bannered routes near Downington, PA](https://wiki.openstreetmap.org/w/images/f/f8/Downington_bannered_routes_Americana.png)
 
-- **`bannerMap`**: a map of network-to-banner arrays listing networks that should have the same style but with specified banners.
+- **`bannerMap`**: map other network IDs onto this definition with their own banner labels. See [Sharing bannered networks with `bannerMap`](#sharing-bannered-networks-with-bannermap).
 - **`bannerTextColor`**: specify the color of the banner text.
 - **`bannerTextHaloColor`**: specify the color of the banner knockout halo.
 - **`textLayout`**: specify how text should be inscribed within the padded bounds of the shield. The text will be drawn at the maximum size allowed by this constraint. See the [text layout functions](#text-layout-functions) section for text layout options.
@@ -213,17 +213,46 @@ You should create one definition entry for each network. The entry key must matc
 - **`ref`**: specify that all shields in this network should be drawn with the specified `ref` value.
 - **`overrideByName`**: specify that particular `name` should use a specific **`spriteBlank`** which differs from the rest of the network.
 
+### Sharing bannered networks with `bannerMap`
+
+Many routes are bannered variants of a base network (truck, alternate, bypass, business, and so on). Those variants usually share the same shield artwork and layout; only the labels above the shield differ. Instead of copying the full definition for every variant, put a **`bannerMap`** on the base network:
+
+```json
+"US:TX": {
+  "shapeBlank": {
+    "drawFunc": "roundedRectangle",
+    "params": {
+      "fillColor": "white",
+      "strokeColor": "black",
+      "radius": 2
+    }
+  },
+  "textColor": "black",
+  "bannerMap": {
+    "US:TX:Truck": ["TRK"],
+    "US:TX:Alternate": ["ALT"],
+    "US:TX:Truck:Bypass": ["TRK", "BYP"]
+  }
+}
+```
+
+When the shield specification loads, Trailblazer expands each `bannerMap` entry into its own network definition: a copy of the parent with **`banners`** set to the listed labels. The parent network itself is unchanged (it only gets banners if it also sets **`banners`**).
+
+- Keys must match the encoded `network` values your style uses for those routes.
+- Values are the same short strings as **`banners`** (typically up to 4 characters), drawn from top to bottom.
+- This is equivalent to separate network entries that each call `banneredShield` / set **`banners`**, but keeps the shared artwork and layout in one place.
+
 ### Handling special case networks
 
-The shield specification allows for the handling of special cases. For example, in OSM Americana, we wanted to create special shields for the [Kentucky Parkway System](https://en.wikipedia.org/wiki/List_of_parkways_and_named_highways_in_Kentucky). This network used a particularly ugly set of shields that looked something like this:
+The shield specification allows for the handling of special cases. For example, suppose you want special shields for the [Kentucky Parkway System](https://en.wikipedia.org/wiki/List_of_parkways_and_named_highways_in_Kentucky). That network used a particularly ugly set of shields that looked something like this:
 
 ![Western Kentucky Parkway shield](https://upload.wikimedia.org/wikipedia/en/d/db/Western_Kentucky_Parkway_fair_use.svg)
 
-The Americana team wanted to draw a series of shields that used two-letter codes to represent each of the Parkways, so that it would look like this:
+You might instead draw a series of shields that use two-letter codes to represent each of the Parkways, so that it would look like this:
 
 ![Kentucky parkways](https://wiki.openstreetmap.org/w/images/d/da/Kentucky_parkway_Americana.png)
 
-However, these two-letter codes weren't actually used as route numbers on shields, so it wasn't appropriate to add them to the `ref=*` tag in OpenStreetMap. Instead, the team used the `refsByName` property, and then defined what two-letter code is assigned to each named route network as follows:
+However, these two-letter codes weren't actually used as route numbers on shields, so it wasn't appropriate to add them to the `ref=*` tag in OpenStreetMap. Instead, use the `refsByName` property to define what two-letter code is assigned to each named route as follows:
 
 ```json
   "US:KY:Parkway": {
@@ -314,39 +343,252 @@ The supported text constraints are:
 
 ### Defining drawn shield shapes
 
-If `shapeBlank` is specified, the shield will be drawn as a shape. This needs to be specified with a drawing function, `drawFunc` and a `params` block the describes how the shape will be drawn. The draw functions are as follows:
+If `shapeBlank` is specified, the shield is drawn as a vector shape. In JSON you only set `drawFunc` and a `params` object (plus normal shield fields like `padding` and `textLayout`):
 
-|                                                                                                                                                                                                                                                    | `drawFunc`          |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| ![](https://upload.wikimedia.org/wikipedia/commons/c/cf/Diamond_highway_shield_shape.svg)                                                                                                                                                          | `diamond`           |
-| ![](https://upload.wikimedia.org/wikipedia/commons/3/30/Black_and_white_circle_shape_as_used_in_highway_shields.svg)                                                                                                                               | `ellipse`           |
-| ![](https://upload.wikimedia.org/wikipedia/commons/7/75/Escutcheon_highway_shield_shape.svg)                                                                                                                                                       | `escutcheon`        |
-| ![](https://upload.wikimedia.org/wikipedia/commons/f/f8/Fishhead_highway_shield_shape.svg)                                                                                                                                                         | `fishhead`          |
-| ![](https://upload.wikimedia.org/wikipedia/commons/6/61/Hexagon_highway_shield_shape.svg)                                                                                                                                                          | `hexagonVertical`   |
-| ![](https://upload.wikimedia.org/wikipedia/commons/2/25/Horizontal_hexagon_shape.svg)                                                                                                                                                              | `hexagonHorizontal` |
-| ![](https://upload.wikimedia.org/wikipedia/commons/f/f8/Octagon_shield_shape.svg)                                                                                                                                                                  | `octagonVertical`   |
-| ![](https://upload.wikimedia.org/wikipedia/commons/f/ff/Pentagon_shield_shape.svg)![](https://upload.wikimedia.org/wikipedia/commons/b/b0/Black_and_white_home_plate_shape_as_used_in_highway_shields.svg)                                         | `pentagon`          |
-| ![](https://upload.wikimedia.org/wikipedia/commons/archive/1/17/20230326013156%21Pill_shape.svg)                                                                                                                                                   | `pill`              |
-| ![](https://upload.wikimedia.org/wikipedia/commons/3/30/Black_and_white_circle_shape_as_used_in_highway_shields.svg)![](https://upload.wikimedia.org/wikipedia/commons/archive/a/a1/20230326013519%21Rounded_rectangle_shape.svg)                  | `roundedRectangle`  |
-| ![](https://upload.wikimedia.org/wikipedia/commons/a/ad/Black_and_white_downward_trapezoid_as_used_in_highway_shields.svg)![](https://upload.wikimedia.org/wikipedia/commons/5/56/Black_and_white_upward_trapezoid_as_used_in_highway_shields.svg) | `trapezoid`         |
-| ![](https://upload.wikimedia.org/wikipedia/commons/a/ad/Downward_triangle_highway_shield_shape.svg)                                                                                                                                                | `triangle`          |
+```json
+"shapeBlank": {
+  "drawFunc": "roundedRectangle",
+  "params": {
+    "fillColor": "white",
+    "strokeColor": "black",
+    "radius": 2
+  }
+}
+```
 
-The following `params` options can be specified:
+Samples below (`npm run docs:shape-samples`) show each built-in `drawFunc`. Several looks can share one `drawFunc` by changing `params` (a home plate is just a `pentagon` with vertical sides). Where a note mentions `sideAngle`, the JSON value is in **radians**.
 
-- `sideAngle` - indicates angle (in degrees) at which side edges deviate from vertical. Applies to `trapezoid`, `pentagon`, `hexagonHorizontal`, `octagonVertical`.
-- `fill` - specifies the internal fill color.
-- `yOffset` - indicates height (in pixels) at which the bottom and/or top edges deviate from horizontal. Applies to `escutcheon`, `pentagon`, `hexagonVertical`, `octagonVertical`.
-- `outline` - specifies the outline color.
-- `outlineWidth` - specifies the width of the outline.
-- `pointUp` - applies to several shape types and specifies whether the pointy side is up.
-- `radius` - specifies the rounding radius, in pixels, to use for corners.
-- `radius1` - Corner radius of pointed side of pentagon (defaults to 2)
-- `radius2` - Corner radius of flat side of pentagon (defaults to 0)
-- `shortSideUp` - for `trapezoid` only, a boolean which specifies whether the short side is up or down.
+| Sample                                                                                                      | `drawFunc`          | What it draws                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| ![](media/shapes/circle.svg) ![](media/shapes/oval.svg)                                                     | `ellipse`           | A circle when width equals height; leave `rectWidth` unset to grow wider with longer refs.                                              |
+| ![](media/shapes/rounded-rectangle.svg)                                                                     | `roundedRectangle`  | A rectangle with rounded corners (`radius`, default 2).                                                                                 |
+| ![](media/shapes/pill.svg)                                                                                  | `pill`              | A stadium / capsule: straight sides with fully rounded ends.                                                                            |
+| ![](media/shapes/diamond.svg)                                                                               | `diamond`           | A diamond (square rotated on its point).                                                                                                |
+| ![](media/shapes/triangle-down.svg)                                                                         | `triangle`          | A triangle; set `pointUp` to flip which way the tip faces.                                                                              |
+| ![](media/shapes/trapezoid-down.svg) ![](media/shapes/trapezoid-up.svg)                                     | `trapezoid`         | A trapezoid; `shortSideUp` picks which base is shorter, `sideAngle` how steep the sides lean.                                           |
+| ![](media/shapes/escutcheon-down.svg)                                                                       | `escutcheon`        | A shield with a curved bottom tip; raise `yOffset` for a deeper point.                                                                  |
+| ![](media/shapes/fishhead-down.svg)                                                                         | `fishhead`          | A fishhead / arrowhead plaque; set `pointUp` to flip the tip.                                                                           |
+| ![](media/shapes/pentagon-up.svg) ![](media/shapes/home-plate-down.svg) ![](media/shapes/home-plate-up.svg) | `pentagon`          | A five-sided shield. Lean the sides with `sideAngle`, or set it to `0` for a home-plate shape; `pointUp` flips the flat vs pointed end. |
+| ![](media/shapes/hexagon-vertical.svg)                                                                      | `hexagonVertical`   | A hexagon with points on top and bottom; `yOffset` controls how deep those points are.                                                  |
+| ![](media/shapes/hexagon-horizontal.svg)                                                                    | `hexagonHorizontal` | A hexagon with points on the left and right; `sideAngle` controls how sharp those side points are.                                      |
+| ![](media/shapes/octagon-vertical.svg)                                                                      | `octagonVertical`   | An octagon; combine `yOffset` and `sideAngle` to shape the cut corners.                                                                 |
+
+Want labels above a shield (ALT, TRK, and so on)? That is the separate `banners` field, not a `drawFunc` (see [Banners](#banners)). Example: ![](media/shapes/bannered-pill.svg)
+
+#### JavaScript helper functions
+
+If you build shield definitions in JavaScript or TypeScript, the `*Shield` helpers return a full network definition (`shapeBlank`, `padding`, `textLayout`, and `textColor`) so you do not have to spell those out by hand. They are not part of the JSON schema; calling a helper just produces ordinary definition objects.
+
+| Helper                    | `drawFunc`          | Notes                                        |
+| ------------------------- | ------------------- | -------------------------------------------- |
+| `circleShield`            | `ellipse`           | Fixed width 20 (circle).                     |
+| `ovalShield`              | `ellipse`           | Optional variable `rectWidth`.               |
+| `roundedRectShield`       | `roundedRectangle`  |                                              |
+| `pillShield`              | `pill`              |                                              |
+| `diamondShield`           | `diamond`           |                                              |
+| `triangleDownShield`      | `triangle`          | `pointUp: false`.                            |
+| `trapezoidDownShield`     | `trapezoid`         | Short side down; `sideAngle` in **degrees**. |
+| `trapezoidUpShield`       | `trapezoid`         | Short side up; `sideAngle` in **degrees**.   |
+| `escutcheonDownShield`    | `escutcheon`        |                                              |
+| `fishheadDownShield`      | `fishhead`          |                                              |
+| `pentagonUpShield`        | `pentagon`          | Point up; `sideAngle` in **degrees**.        |
+| `homePlateDownShield`     | `pentagon`          | `sideAngle: 0`, point down.                  |
+| `homePlateUpShield`       | `pentagon`          | `sideAngle: 0`, point up.                    |
+| `hexagonVerticalShield`   | `hexagonVertical`   |                                              |
+| `hexagonHorizontalShield` | `hexagonHorizontal` | `sideAngle` in **degrees**.                  |
+| `octagonVerticalShield`   | `octagonVertical`   | `sideAngle` in **degrees**.                  |
+| `banneredShield`          | _(same as base)_    | Copies a definition and sets `banners`.      |
+| `paBeltShield`            | `paBelt`            | Custom graphic (see below).                  |
+| `bransonRouteShield`      | `branson`           | Custom graphic (see below).                  |
+
+Example: this helper call:
+
+```js
+import { roundedRectShield } from "@americana/trailblazer";
+
+const def = roundedRectShield("#ffffff", "#000000", "#000000", undefined, 2);
+```
+
+produces the same definition object you would write in JSON as:
+
+```json
+{
+  "shapeBlank": {
+    "drawFunc": "roundedRectangle",
+    "params": {
+      "fillColor": "#ffffff",
+      "strokeColor": "#000000",
+      "radius": 2
+    }
+  },
+  "textLayout": {
+    "constraintFunc": "roundedRect",
+    "options": { "radius": 2 }
+  },
+  "padding": { "left": 3, "right": 3, "top": 3, "bottom": 3 },
+  "textColor": "#000000"
+}
+```
+
+#### `shapeBlank.params` options
+
+Each option below is illustrated with samples from `npm run docs:shape-samples`. Names are the ones on `ShapeBlankParams` (not older wiki synonyms like `fill` / `outline`).
+
+##### `fillColor` / `strokeColor`
+
+Interior and outline colors. `textColor` on the shield definition is separate.
+
+| ![](media/shapes/param-colors-default.svg)       | ![](media/shapes/param-colors-filled.svg)        |
+| ------------------------------------------------ | ------------------------------------------------ |
+| `fillColor: "#ffffff"`, `strokeColor: "#000000"` | `fillColor: "#003f87"`, `strokeColor: "#ffd200"` |
+
+##### `outlineWidth`
+
+Outline thickness in CSS pixels (default `1`).
+
+| ![](media/shapes/param-outline-1.svg) | ![](media/shapes/param-outline-4.svg) |
+| ------------------------------------- | ------------------------------------- |
+| `outlineWidth: 1`                     | `outlineWidth: 4`                     |
+
+##### `rectWidth`
+
+Omit for variable width (grows with the ref, clamped between the library min/max). Set a number for a fixed blank width.
+
+| ![](media/shapes/param-rectwidth-var-short.svg) | ![](media/shapes/param-rectwidth-var-long.svg) |
+| ----------------------------------------------- | ---------------------------------------------- |
+| variable, ref `5`                               | variable, ref `1234`                           |
+
+| ![](media/shapes/param-rectwidth-fixed-narrow.svg) | ![](media/shapes/param-rectwidth-fixed-wide.svg) |
+| -------------------------------------------------- | ------------------------------------------------ |
+| `rectWidth: 16`                                    | `rectWidth: 34`                                  |
+
+##### `radius`
+
+Single corner radius for `roundedRectangle`, `diamond`, `triangle`, trapezoids, hex/octagon, and similar.
+
+| ![](media/shapes/param-radius-0.svg) | ![](media/shapes/param-radius-6.svg) |
+| ------------------------------------ | ------------------------------------ |
+| `radius: 0`                          | `radius: 6`                          |
+
+##### `radius1` / `radius2`
+
+On `pentagon` (including home-plate style with `sideAngle: 0`): `radius1` is the pointed end, `radius2` is the flat end.
+
+| ![](media/shapes/param-radius1-sharp.svg) | ![](media/shapes/param-radius1-round.svg) |
+| ----------------------------------------- | ----------------------------------------- |
+| `radius1: 0` (sharp point)                | `radius1: 8`                              |
+
+| ![](media/shapes/param-radius2-sharp.svg) | ![](media/shapes/param-radius2-round.svg) |
+| ----------------------------------------- | ----------------------------------------- |
+| `radius2: 0` (sharp flat corners)         | `radius2: 8`                              |
+
+##### `yOffset`
+
+How far top and/or bottom edges cut in toward a point. Higher means a deeper tip. Used by `escutcheon`, `pentagon`, `hexagonVertical`, and `octagonVertical`.
+
+Escutcheon:
+
+| ![](media/shapes/param-yoffset-escutcheon-2.svg) | ![](media/shapes/param-yoffset-escutcheon-14.svg) |
+| ------------------------------------------------ | ------------------------------------------------- |
+| `yOffset: 2`                                     | `yOffset: 14`                                     |
+
+Vertical hexagon:
+
+| ![](media/shapes/param-yoffset-hexv-2.svg) | ![](media/shapes/param-yoffset-hexv-4.svg) |
+| ------------------------------------------ | ------------------------------------------ |
+| `yOffset: 2`                               | `yOffset: 4`                               |
+
+Pentagon tip:
+
+| ![](media/shapes/param-yoffset-pentagon-4.svg) | ![](media/shapes/param-yoffset-pentagon-8.svg) |
+| ---------------------------------------------- | ---------------------------------------------- |
+| `yOffset: 4`                                   | `yOffset: 8`                                   |
+
+##### `sideAngle`
+
+How far the sides lean from vertical (**radians** in JSON `params`). Used by `trapezoid`, `pentagon`, `hexagonHorizontal`, and `octagonVertical`.
+
+Trapezoid:
+
+| ![](media/shapes/param-sideangle-trap-5.svg) | ![](media/shapes/param-sideangle-trap-15.svg) |
+| -------------------------------------------- | --------------------------------------------- |
+| 5°                                           | 15°                                           |
+
+Horizontal hexagon:
+
+| ![](media/shapes/param-sideangle-hexh-15.svg) | ![](media/shapes/param-sideangle-hexh-40.svg) |
+| --------------------------------------------- | --------------------------------------------- |
+| 15°                                           | 40°                                           |
+
+Pentagon with slanted sides:
+
+| ![](media/shapes/param-sideangle-pentagon-0.svg) | ![](media/shapes/param-sideangle-pentagon-20.svg) |
+| ------------------------------------------------ | ------------------------------------------------- |
+| 0°                                               | 20°                                               |
+
+##### `pointUp`
+
+Whether the pointed end is on top. Applies to `triangle`, `pentagon` / home-plate, and `fishhead`.
+
+Triangle:
+
+| ![](media/shapes/param-pointup-triangle-false.svg) | ![](media/shapes/param-pointup-triangle-true.svg) |
+| -------------------------------------------------- | ------------------------------------------------- |
+| `pointUp: false`                                   | `pointUp: true`                                   |
+
+Fishhead:
+
+| ![](media/shapes/param-pointup-fishhead-false.svg) | ![](media/shapes/param-pointup-fishhead-true.svg) |
+| -------------------------------------------------- | ------------------------------------------------- |
+| `pointUp: false`                                   | `pointUp: true`                                   |
+
+##### `shortSideUp`
+
+Trapezoid only: which base is shorter.
+
+| ![](media/shapes/param-shortsideup-false.svg) | ![](media/shapes/param-shortsideup-true.svg) |
+| --------------------------------------------- | -------------------------------------------- |
+| `shortSideUp: false` (short side down)        | `shortSideUp: true` (short side up)          |
+
+##### Banners
+
+Not a `params` field. Set `banners` on the shield definition to draw short labels above the blank. Prefer ≤3 characters so they stay readable at shield size. Optional `bannerTextColor` overrides the global `options.bannerTextColor`.
+
+| ![](media/shapes/param-banners-one.svg) | ![](media/shapes/param-banners-two.svg) |
+| --------------------------------------- | --------------------------------------- |
+| `"banners": ["ALT"]`                    | `"banners": ["ALT", "TRK"]`             |
+
+| ![](media/shapes/param-banners-color-black.svg) | ![](media/shapes/param-banners-color-red.svg) |
+| ----------------------------------------------- | --------------------------------------------- |
+| `bannerTextColor: "#000000"`                    | `bannerTextColor: "#bf2033"`                  |
+
+##### `colorLighten` / `colorDarken`
+
+These recolor **sprite** blanks (`spriteBlank`), not drawn `shapeBlank` shapes. Black pixels become `colorLighten`; white pixels become `colorDarken`. For example, historic US routes (including Route 66) can use Pantone 469 brown (`#693f23`) as `colorLighten`:
+
+| ![](media/shapes/param-colorlighten-plain.png) | ![](media/shapes/param-colorlighten-brown.png)  | ![](media/shapes/param-colordarken-blue.png)   |
+| ---------------------------------------------- | ----------------------------------------------- | ---------------------------------------------- |
+| plain black/white badge                        | `colorLighten: "#693f23"` (+ brown `textColor`) | `colorDarken: "#003f87"` (+ white `textColor`) |
+
+```ts
+{
+  spriteBlank: ["shield_badge_2", "shield_badge_3"],
+  textColor: "#693f23",
+  colorLighten: "#693f23",
+  padding: { left: 8, right: 8, top: 10, bottom: 12 },
+}
+```
 
 ### Custom shield graphics
 
-In addition to the stock drawing functions, a custom draw function can be specified. `paDot` and `branson` are included as examples of this, for rendering the [Allegheny County belt system](https://en.wikipedia.org/wiki/Allegheny_County_belt_system) and the Branson, Missouri colored route system. See the file `src/custom_shields.mjs` for an example of how this is done.
+Besides the stock shapes, you can register a custom `drawFunc`. Bundled examples (same JSON shape, just a different `drawFunc` name):
+
+| Sample                        | `drawFunc` | Use                                                                                                       |
+| ----------------------------- | ---------- | --------------------------------------------------------------------------------------------------------- |
+| ![](media/shapes/pa-belt.svg) | `paBelt`   | [Allegheny County belt](https://en.wikipedia.org/wiki/Allegheny_County_belt_system) icon (no route text). |
+| ![](media/shapes/branson.svg) | `branson`  | Branson, Missouri colored route plaque (no route text).                                                   |
+
+See [`src/custom_shields.ts`](src/custom_shields.ts) for how those register with `registerDrawFunction`.
 
 ## Development
 
@@ -361,6 +603,14 @@ npm test
 
 Headless shield rendering tests use [`canvas`](https://www.npmjs.com/package/canvas). On Linux you may need the usual Cairo/Pango system packages before `npm ci` succeeds.
 
+### Shape sample SVGs
+
+Drawn-shield illustrations in this README live under `media/shapes/`. Regenerate them after changing drawing helpers or the sample script:
+
+```sh
+npm run docs:shape-samples
+```
+
 ### Test coverage
 
 Coverage is collected with [c8](https://github.com/bcoe/c8) over the TypeScript sources under `src/`.
@@ -369,14 +619,7 @@ Coverage is collected with [c8](https://github.com/bcoe/c8) over the TypeScript 
 npm run test:coverage
 ```
 
-This prints a summary in the terminal and writes a full HTML report to `coverage/`. Open the report locally:
-
-```sh
-open coverage/index.html   # macOS
-xdg-open coverage/index.html   # Linux
-```
-
-The `coverage/` directory is gitignored. On pull requests, CI also:
+This prints a summary in the terminal and writes a full HTML report to `coverage/` (gitignored). On pull requests, CI also:
 
 - posts the coverage summary on the Actions job summary page (visible from the Checks tab)
 - uploads the HTML report as a `coverage-report` workflow artifact

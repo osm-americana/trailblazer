@@ -11,6 +11,6 @@
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true
   },
-  "exclude": ["node_modules", "**/*.json"],
-  "include": ["src/**/*.ts", "scripts/**.ts", "src/shield.js", "src/shield.js"]
+  "exclude": ["node_modules", "**/*.json", "scripts"],
+  "include": ["src/**/*.ts", "src/shield.js"]
 }
